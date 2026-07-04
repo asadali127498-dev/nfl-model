@@ -46,7 +46,7 @@ current_season = None
 predictedmargins = []
 actualmargins = []
 Vegasmargins = []
-hfa = 2.5
+hfa = 3
 for index, row in df.iterrows():
     if row['season'] != current_season:
         if current_season is not None:
@@ -57,11 +57,12 @@ for index, row in df.iterrows():
     away = row['away_team']
     actual = max(min(row['result'], 20), -20)
     expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
-    predictedmargins.append(expected)
-    actualmargins.append(row['result'])
-    Vegasmargins.append(row['spread_line'])
-    elo[home] = elo[home] + 4 * (actual - expected)
-    elo[away] = elo[away] - 4 * (actual - expected)
+    if row['season'] == 2024:
+        predictedmargins.append(expected)
+        actualmargins.append(row['result'])
+        Vegasmargins.append(row['spread_line'])
+        elo[home] = elo[home] + 4 * (actual - expected)
+        elo[away] = elo[away] - 4 * (actual - expected)
 model_mae = sum( abs(p - a) for p, a, in zip(predictedmargins, actualmargins) ) / len(predictedmargins)
 vegas_mae = sum( abs(v - a) for v, a, in zip(Vegasmargins, actualmargins) ) / len(Vegasmargins)
 sorted_elo = sorted(elo.items(), key=lambda x: x[1], reverse=True)
