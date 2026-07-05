@@ -46,7 +46,7 @@ current_season = None
 predictedmargins = []
 actualmargins = []
 Vegasmargins = []
-hfa = 3
+hfa = 2.5
 for index, row in df.iterrows():
     if row['season'] != current_season:
         if current_season is not None:
@@ -57,7 +57,7 @@ for index, row in df.iterrows():
     away = row['away_team']
     actual = max(min(row['result'], 20), -20)
     expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
-    if row['season'] == 2024:
+    if row['season'] >= 2022:
         predictedmargins.append(expected)
         actualmargins.append(row['result'])
         Vegasmargins.append(row['spread_line'])
