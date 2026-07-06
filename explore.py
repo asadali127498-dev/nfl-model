@@ -1,4 +1,5 @@
 import nfl_data_py as nfl
+from statistics import NormalDist
 
 df = nfl.import_schedules([2021, 2022, 2023, 2024])
 df = df[df['game_type'] == 'REG']
@@ -46,6 +47,8 @@ current_season = None
 predictedmargins = []
 actualmargins = []
 Vegasmargins = []
+winprobs = []
+homewins = []
 hfa = 2.5
 for index, row in df.iterrows():
     if row['season'] != current_season:
@@ -57,17 +60,33 @@ for index, row in df.iterrows():
     away = row['away_team']
     actual = max(min(row['result'], 20), -20)
     expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
+    win_prob = NormalDist().cdf(expected / 13.5)
     if row['season'] >= 2022:
         predictedmargins.append(expected)
         actualmargins.append(row['result'])
         Vegasmargins.append(row['spread_line'])
-        elo[home] = elo[home] + 4 * (actual - expected)
-        elo[away] = elo[away] - 4 * (actual - expected)
+        winprobs.append(win_prob)
+        homewins.append(1 if row['result'] > 0 else 0)
+    elo[home] = elo[home] + 4 * (actual - expected)
+    elo[away] = elo[away] - 4 * (actual - expected)
 model_mae = sum( abs(p - a) for p, a, in zip(predictedmargins, actualmargins) ) / len(predictedmargins)
 vegas_mae = sum( abs(v - a) for v, a, in zip(Vegasmargins, actualmargins) ) / len(Vegasmargins)
 sorted_elo = sorted(elo.items(), key=lambda x: x[1], reverse=True)
+# setup: make both dicts, buckets 0 through 9 start at 0
+bucket_count = {}
+bucket_wins = {}
+for b in range(10):
+    bucket_count[b] = 0
+    bucket_wins[b]  = 0
+for prob, won in zip(winprobs, homewins):
+    bucket = int(prob * 10)
+    bucket_count[bucket] += 1
+    bucket_wins[bucket] += won
 print(f"Model MAE: {model_mae:.2f}")
 print(f"Vegas MAE: {vegas_mae:.2f}")
 for team, rating in sorted_elo:
     print(f"{team}: {rating:.1f}")
-
+for b in range(10):
+    if bucket_count[b] > 0:
+        print(f"Bucket {b}: {bucket_wins[b]} wins out of {bucket_count[b]} games, win rate: {bucket_wins[b]/bucket_count[b]:.2f}")
+        
