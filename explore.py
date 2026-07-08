@@ -50,6 +50,7 @@ Vegasmargins = []
 winprobs = []
 homewins = []
 hfa = 2.5
+sigma = 17
 for index, row in df.iterrows():
     if row['season'] != current_season:
         if current_season is not None:
@@ -60,7 +61,7 @@ for index, row in df.iterrows():
     away = row['away_team']
     actual = max(min(row['result'], 20), -20)
     expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
-    win_prob = NormalDist().cdf(expected / 13.5)
+    win_prob = NormalDist().cdf(expected / sigma)
     if row['season'] >= 2022:
         predictedmargins.append(expected)
         actualmargins.append(row['result'])
@@ -69,6 +70,8 @@ for index, row in df.iterrows():
         homewins.append(1 if row['result'] > 0 else 0)
     elo[home] = elo[home] + 4 * (actual - expected)
     elo[away] = elo[away] - 4 * (actual - expected)
+brier = sum((p - w)**2  for p, w in zip(winprobs, homewins) ) / len(winprobs)
+print(f"Brier: {brier:.4f}")
 model_mae = sum( abs(p - a) for p, a, in zip(predictedmargins, actualmargins) ) / len(predictedmargins)
 vegas_mae = sum( abs(v - a) for v, a, in zip(Vegasmargins, actualmargins) ) / len(Vegasmargins)
 sorted_elo = sorted(elo.items(), key=lambda x: x[1], reverse=True)
@@ -89,4 +92,4 @@ for team, rating in sorted_elo:
 for b in range(10):
     if bucket_count[b] > 0:
         print(f"Bucket {b}: {bucket_wins[b]} wins out of {bucket_count[b]} games, win rate: {bucket_wins[b]/bucket_count[b]:.2f}")
-        
+
