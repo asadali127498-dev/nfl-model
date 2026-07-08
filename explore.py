@@ -50,7 +50,7 @@ Vegasmargins = []
 winprobs = []
 homewins = []
 hfa = 2.5
-sigma = 17
+sigma = 16
 for index, row in df.iterrows():
     if row['season'] != current_season:
         if current_season is not None:
