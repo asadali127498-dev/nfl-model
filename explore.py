@@ -18,7 +18,7 @@ for index, row in df.iterrows():
         philly_margins.append(-row['result'])
 
 print(sum(philly_margins))
-len(philly_margins)
+print(len(philly_margins))
 average_margin = sum(philly_margins) / len(philly_margins)
 print(average_margin)
 print(df['home_team'].unique())
