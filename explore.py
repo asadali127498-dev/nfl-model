@@ -3,6 +3,7 @@ from statistics import NormalDist
 
 df = nfl.import_schedules([2021, 2022, 2023, 2024])
 df = df[df['game_type'] == 'REG']
+df = df.sort_values('gameday')
 print(df.shape)
 print(df.columns)
 print(df.head())
@@ -37,8 +38,37 @@ print(team_avg)
 sorted_teams = sorted(team_avg.items(), key=lambda x: x[1], reverse=True)
 for team, avg in sorted_teams:
     print(f"{team}: {avg:.2f}")
-   
-   
+pbp = nfl.import_pbp_data([2021, 2022, 2023, 2024])
+  
+ 
+print(pbp.shape)
+print((pbp[['game_id', 'posteam', 'epa']]).head(20).to_string())
+
+
+
+pbp = pbp[pbp['posteam'].notna()]                      
+game_epa = pbp.groupby(['game_id', 'posteam'])['epa'].sum()
+print(game_epa.head(10))
+game_epa = game_epa.reset_index()
+print(game_epa.head(10))
+df = df.merge(
+    game_epa,
+    left_on=['game_id', 'home_team'],
+    right_on=['game_id', 'posteam']
+)
+df = df.rename(columns={'epa': 'home_epa'})
+print(df[['game_id', 'home_team', 'away_team', 'home_epa']].head())
+df = df.merge(
+    game_epa,
+    left_on=['game_id', 'away_team'],
+    right_on=['game_id', 'posteam']
+)
+df = df.rename(columns={'epa': 'away_epa'})
+print(df[['game_id', 'home_team', 'away_team', 'home_epa', 'away_epa']].head())
+
+df['epa_margin'] = df['home_epa'] - df['away_epa']
+print(df[['game_id', 'result', 'epa_margin']].head())
+  
 elo = {}
 for team in df['home_team'].unique():
     elo[team] = 1500
@@ -59,7 +89,7 @@ for index, row in df.iterrows():
         current_season = row['season']
     home = row['home_team']
     away = row['away_team']
-    actual = max(min(row['result'], 20), -20)
+    actual = max(min(row['epa_margin'], 20), -20)  
     expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
     win_prob = NormalDist().cdf(expected / sigma)
     if row['season'] >= 2022:
@@ -75,7 +105,7 @@ print(f"Brier: {brier:.4f}")
 model_mae = sum( abs(p - a) for p, a, in zip(predictedmargins, actualmargins) ) / len(predictedmargins)
 vegas_mae = sum( abs(v - a) for v, a, in zip(Vegasmargins, actualmargins) ) / len(Vegasmargins)
 sorted_elo = sorted(elo.items(), key=lambda x: x[1], reverse=True)
-# setup: make both dicts, buckets 0 through 9 start at 0
+
 bucket_count = {}
 bucket_wins = {}
 for b in range(10):
@@ -93,3 +123,4 @@ for b in range(10):
     if bucket_count[b] > 0:
         print(f"Bucket {b}: {bucket_wins[b]} wins out of {bucket_count[b]} games, win rate: {bucket_wins[b]/bucket_count[b]:.2f}")
 
+print(df[['gameday', 'home_team', 'away_team', 'result', 'epa_margin']].head())
