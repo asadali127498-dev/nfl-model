@@ -79,6 +79,7 @@ actualmargins = []
 Vegasmargins = []
 winprobs = []
 homewins = []
+K = 4
 hfa = 2.5
 sigma = 16
 for index, row in df.iterrows():
@@ -89,7 +90,7 @@ for index, row in df.iterrows():
         current_season = row['season']
     home = row['home_team']
     away = row['away_team']
-    actual = max(min(row['epa_margin'], 20), -20)  
+    actual = max(min(row['result'], 20), -20)  
     expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
     win_prob = NormalDist().cdf(expected / sigma)
     if row['season'] >= 2022:
@@ -98,8 +99,8 @@ for index, row in df.iterrows():
         Vegasmargins.append(row['spread_line'])
         winprobs.append(win_prob)
         homewins.append(1 if row['result'] > 0 else 0)
-    elo[home] = elo[home] + 4 * (actual - expected)
-    elo[away] = elo[away] - 4 * (actual - expected)
+    elo[home] = elo[home] + K * (actual - expected)
+    elo[away] = elo[away] - K * (actual - expected)
 brier = sum((p - w)**2  for p, w in zip(winprobs, homewins) ) / len(winprobs)
 print(f"Brier: {brier:.4f}")
 model_mae = sum( abs(p - a) for p, a, in zip(predictedmargins, actualmargins) ) / len(predictedmargins)
