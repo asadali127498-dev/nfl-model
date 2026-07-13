@@ -1,10 +1,11 @@
 from statistics import NormalDist
 
 
-def run(df, K=2, signal='result', cap=20, hfa=2.5, sigma=16, eval_from=2022):
+def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022):
     """Walk-forward Elo over the date order.
 
-    Ratings train on `signal` (e.g. 'result' or 'epa_margin'), capped at a +/-cap to balance blowout games.
+    Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
+    capped at +/-cap to balance blowout games. w=1 is pure scoreboard, w=0 is pure EPA.
     Predictions are graded out-of-sample from season `eval_from` onward, always
     against the real scoreboard (`result`). Returns a dict of metrics.
     """
@@ -20,13 +21,14 @@ def run(df, K=2, signal='result', cap=20, hfa=2.5, sigma=16, eval_from=2022):
             current_season = row['season']
 
         home, away = row['home_team'], row['away_team']
-        actual = max(min(row[signal], cap), -cap)               # training signal
+        blended = w * row['result'] + (1 - w) * row['epa_margin']
+        actual = max(min(blended, cap), -cap)
         expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
         win_prob = NormalDist().cdf(expected / sigma)
 
-        if row['season'] >= eval_from:                          # out-of-sample only
+        if row['season'] >= eval_from:                         
             pred.append(expected)
-            act.append(row['result'])                          # ground truth: scoreboard
+            act.append(row['result'])                          
             veg.append(row['spread_line'])
             winprobs.append(win_prob)
             homewins.append(1 if row['result'] > 0 else 0)
@@ -36,7 +38,7 @@ def run(df, K=2, signal='result', cap=20, hfa=2.5, sigma=16, eval_from=2022):
 
     mae = sum(abs(p - a) for p, a in zip(pred, act)) / len(pred)
     vegas_mae = sum(abs(v - a) for v, a in zip(veg, act)) / len(veg)
-    brier = sum((p - w) ** 2 for p, w in zip(winprobs, homewins)) / len(winprobs)
+    brier = sum((p - hw) ** 2 for p, hw in zip(winprobs, homewins)) / len(winprobs)
 
     return {'mae': mae, 'vegas_mae': vegas_mae, 'brier': brier,
             'elo': elo, 'winprobs': winprobs, 'homewins': homewins,
@@ -47,8 +49,8 @@ def calibration_table(winprobs, homewins):
     """Bucket predictions into 0.0-0.1 ... 0.9-1.0 and return (counts, wins)."""
     counts = {b: 0 for b in range(10)}
     wins = {b: 0 for b in range(10)}
-    for p, w in zip(winprobs, homewins):
+    for p, hw in zip(winprobs, homewins):
         b = int(p * 10)
         counts[b] += 1
-        wins[b] += w
+        wins[b] += hw
     return counts, wins
