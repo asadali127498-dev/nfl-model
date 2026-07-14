@@ -1,12 +1,12 @@
 from statistics import NormalDist
 
 
-def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022):
+def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
     capped at +/-cap to balance blowout games. w=1 is pure scoreboard, w=0 is pure EPA.
-    Predictions are graded out-of-sample from season `eval_from` onward, always
+    Predictions are graded out-of-sample from season 2022-2024, always
     against the real scoreboard (`result`). Returns a dict of metrics.
     """
     elo = {t: 1500 for t in df['home_team'].unique()}
@@ -26,7 +26,7 @@ def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022):
         expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
         win_prob = NormalDist().cdf(expected / sigma)
 
-        if row['season'] >= eval_from:                         
+        if eval_from <= row['season'] <= eval_to:                        
             pred.append(expected)
             act.append(row['result'])                          
             veg.append(row['spread_line'])
