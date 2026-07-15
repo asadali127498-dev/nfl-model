@@ -27,3 +27,8 @@ for b in range(10):
 
 test = elo_model.run(df, K=2, eval_from=2024, eval_to=2024)
 print(f"\nTEST (2024, untouched): MAE {test['mae']:.4f}  vs Vegas {test['vegas_mae']:.4f}  Brier {test['brier']:.4f}")
+
+print("\nTOTALS VALIDATION (2022-23) — pick K here")
+for K in [0.5, 1, 1.5, 2, 3]:
+    tv = elo_model.run_totals(df, K=K, eval_from=2022, eval_to=2023)
+    print(f"K={K}: MAE {tv['mae']:.4f}  vs Vegas {tv['vegas_mae']:.4f}")
