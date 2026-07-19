@@ -58,7 +58,7 @@ def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022, eval_to=2024)
     """
     elo = {t: 1500 for t in df['home_team'].unique()}
     current_season = None
-    pred, act, veg, winprobs, homewins = [], [], [], [], []
+    pred, act, veg, winprobs, homewins, games = [], [], [], [], [], []
 
     for _, row in df.iterrows():
         if row['season'] != current_season:
@@ -73,12 +73,14 @@ def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022, eval_to=2024)
         expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
         win_prob = NormalDist().cdf(expected / sigma)
 
-        if eval_from <= row['season'] <= eval_to:                        
+        if eval_from <= row['season'] <= eval_to:
             pred.append(expected)
-            act.append(row['result'])                          
+            act.append(row['result'])
             veg.append(row['spread_line'])
             winprobs.append(win_prob)
             homewins.append(1 if row['result'] > 0 else 0)
+            games.append({'home': home, 'away': away, 'week': row['week'],
+                          'error': abs(expected - row['result'])})
 
         elo[home] += K * (actual - expected)
         elo[away] -= K * (actual - expected)
@@ -89,7 +91,7 @@ def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022, eval_to=2024)
 
     return {'mae': mae, 'vegas_mae': vegas_mae, 'brier': brier,
             'elo': elo, 'winprobs': winprobs, 'homewins': homewins,
-            'n': len(pred)}
+            'games': games, 'n': len(pred)}
 
 
 def calibration_table(winprobs, homewins):
