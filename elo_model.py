@@ -23,7 +23,6 @@ def run_totals(df, K=2, hfa=2.5, scale=25, eval_from=2022, eval_to=2023):
                 for t in def_elo:
                     def_elo[t] = 1500 + 0.75 * (def_elo[t] - 1500)
             current_season = row['season']
-
         home, away = row['home_team'], row['away_team']
 
         expected_home_score = baseline + (off_elo[home] - def_elo[away]) / scale + hfa
@@ -41,6 +40,8 @@ def run_totals(df, K=2, hfa=2.5, scale=25, eval_from=2022, eval_to=2023):
         def_elo[away] -= K * (home_epa - (off_elo[home] - def_elo[away]) / scale)
         off_elo[away] += K * (away_epa - (off_elo[away] - def_elo[home]) / scale)
         def_elo[home] -= K * (away_epa - (off_elo[away] - def_elo[home]) / scale)
+    
+    
 
     mae = sum(abs(p - a) for p, a in zip(pred, act)) / len(pred)
     vegas_mae = sum(abs(v - a) for v, a in zip(veg, act)) / len(veg)
@@ -48,7 +49,7 @@ def run_totals(df, K=2, hfa=2.5, scale=25, eval_from=2022, eval_to=2023):
     return {'mae': mae, 'vegas_mae': vegas_mae,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
-def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022, eval_to=2024):
+def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, qb_regression=1.0, eval_from=2022, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
@@ -56,6 +57,7 @@ def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022, eval_to=2024)
     Predictions are graded out-of-sample from season 2022-2024, always
     against the real scoreboard (`result`). Returns a dict of metrics.
     """
+    last_qb = {}
     elo = {t: 1500 for t in df['home_team'].unique()}
     current_season = None
     pred, act, veg, winprobs, homewins, games = [], [], [], [], [], []
@@ -66,8 +68,15 @@ def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022, eval_to=2024)
                 for t in elo:
                     elo[t] = 1500 + 0.75 * (elo[t] - 1500)
             current_season = row['season']
-
+        home_qb = row['home_qb_id']
+        away_qb = row['away_qb_id']
         home, away = row['home_team'], row['away_team']
+        home_qb_changed = home in last_qb and home_qb != last_qb[home] and row['week'] != 18
+        away_qb_changed = away in last_qb and away_qb != last_qb[away] and row['week'] != 18
+        if home_qb_changed:
+            elo[home] = 1500 + qb_regression * (elo[home] - 1500)
+        if away_qb_changed:
+            elo[away] = 1500 + qb_regression * (elo[away] - 1500)
         blended = w * row['result'] + (1 - w) * row['epa_margin']
         actual = max(min(blended, cap), -cap)
         expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
@@ -84,7 +93,8 @@ def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, eval_from=2022, eval_to=2024)
 
         elo[home] += K * (actual - expected)
         elo[away] -= K * (actual - expected)
-
+        last_qb[home] = home_qb
+        last_qb[away] = away_qb
     mae = sum(abs(p - a) for p, a in zip(pred, act)) / len(pred)
     vegas_mae = sum(abs(v - a) for v, a in zip(veg, act)) / len(veg)
     brier = sum((p - hw) ** 2 for p, hw in zip(winprobs, homewins)) / len(winprobs)
