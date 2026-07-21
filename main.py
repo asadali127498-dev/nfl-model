@@ -39,3 +39,17 @@ print("\nQB REGRESSION VALIDATION (2022-23) — pick qb_regression here, K=2")
 for qb_regression in [0, 0.1, 0.2, 0.3, 0.5,0.6,0.7,0.8,0.9,1.0,1.1]:
     q = elo_model.run(df, K=2, qb_regression=qb_regression, eval_from=2022, eval_to=2023)
     print(f"qb_regression={qb_regression}: MAE {q['mae']:.4f}  Brier {q['brier']:.4f}")
+
+print("\nTOTALS SCALE VALIDATION (2022-23) — pick scale here, K=0.8")
+for scale in [15, 20, 25, 30, 35]:
+    s = elo_model.run_totals(df, K=0.8, scale=scale, eval_from=2022, eval_to=2023)
+    print(f"scale={scale}: MAE {s['mae']:.4f}  vs Vegas {s['vegas_mae']:.4f}")
+
+print("\nHFA VALIDATION (2022-23) — pick hfa here, K=2")
+print("judged on Brier + calibration, not just MAE (MAE barely moves across this range)")
+for hfa in [1.0, 1.5, 2.0, 2.5, 3.0]:
+    h = elo_model.run(df, K=2, hfa=hfa, eval_from=2022, eval_to=2023)
+    n1, r1 = elo_model.bucket_rate(h['winprobs'], h['homewins'], 0.4, 0.5)
+    n2, r2 = elo_model.bucket_rate(h['winprobs'], h['homewins'], 0.5, 0.6)
+    print(f"hfa={hfa}: MAE {h['mae']:.4f}  Brier {h['brier']:.4f}  "
+          f"underdog(.4-.5)={r1:.3f} (n={n1})  favorite(.5-.6)={r2:.3f} (n={n2})")

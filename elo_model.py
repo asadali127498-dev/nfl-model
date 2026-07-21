@@ -1,6 +1,6 @@
 from statistics import NormalDist
 
-def run_totals(df, K=2, hfa=2.5, scale=25, eval_from=2022, eval_to=2023):
+def run_totals(df, K=2, hfa=1.5, scale=25, eval_from=2022, eval_to=2023):
     """Walk-forward offense/defense Elo, predicting game TOTAL (home+away score).
 
     Each team has two ratings: off_elo (scoring ability) and def_elo (points
@@ -49,7 +49,7 @@ def run_totals(df, K=2, hfa=2.5, scale=25, eval_from=2022, eval_to=2023):
     return {'mae': mae, 'vegas_mae': vegas_mae,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
-def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, qb_regression=1.0, eval_from=2022, eval_to=2024):
+def run(df, K=2, w=1.0, cap=20, hfa=1.5, sigma=16, qb_regression=1.0, eval_from=2022, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
@@ -102,6 +102,14 @@ def run(df, K=2, w=1.0, cap=20, hfa=2.5, sigma=16, qb_regression=1.0, eval_from=
     return {'mae': mae, 'vegas_mae': vegas_mae, 'brier': brier,
             'elo': elo, 'winprobs': winprobs, 'homewins': homewins,
             'games': games, 'n': len(pred)}
+
+
+def bucket_rate(winprobs, homewins, lo, hi):
+    """Actual home win rate for games with predicted win_prob in [lo, hi)."""
+    pairs = [(p, hw) for p, hw in zip(winprobs, homewins) if lo <= p < hi]
+    if not pairs:
+        return 0, None
+    return len(pairs), sum(hw for _, hw in pairs) / len(pairs)
 
 
 def calibration_table(winprobs, homewins):
