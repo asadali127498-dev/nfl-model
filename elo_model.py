@@ -1,6 +1,7 @@
 from statistics import NormalDist
 
-def run_totals(df, K=0.6, hfa=1.25, scale=25, eval_from=2020, eval_to=2022):
+def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
+               eval_from=2020, eval_to=2022):
     """Walk-forward offense/defense Elo, predicting game TOTAL (home+away score).
 
     Each team has two ratings: off_elo (scoring ability) and def_elo (points
@@ -8,12 +9,17 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, eval_from=2020, eval_to=2022):
     updates on the opponent's EPA against them. Predictions are graded
     out-of-sample from `eval_from` through `eval_to`, against the real total
     and the Vegas total_line.
+
+    For outdoor/open-roof games, wind above `wind_threshold` mph subtracts
+    `wind_coef` points per mph over the threshold from the PREDICTION only —
+    it never touches the off_elo/def_elo rating updates, since wind is a
+    one-game condition, not a reflection of true team quality.
     """
     off_elo = {t: 1500 for t in df['home_team'].unique()}
     def_elo = {t: 1500 for t in df['home_team'].unique()}
     baseline = df['total'].mean() / 2
     current_season = None
-    pred, act, veg = [], [], []
+    pred, act, veg, games = [], [], [], []
 
     for _, row in df.iterrows():
         if row['season'] != current_season:
@@ -29,10 +35,18 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, eval_from=2020, eval_to=2022):
         expected_away_score = baseline + (off_elo[away] - def_elo[home]) / scale
         expected_total = expected_home_score + expected_away_score
 
+        wind = row['wind']
+        if row['roof'] in ('outdoors', 'open') and wind > wind_threshold:
+            expected_total -= wind_coef * (wind - wind_threshold)
+
         if eval_from <= row['season'] <= eval_to:
             pred.append(expected_total)
             act.append(row['total'])
             veg.append(row['total_line'])
+            games.append({'home': home, 'away': away, 'week': row['week'],
+                          'roof': row['roof'],
+                          'pred': expected_total, 'actual': row['total'],
+                          'vegas': row['total_line']})
 
         home_epa = row['home_epa']
         away_epa = row['away_epa']
@@ -46,7 +60,7 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, eval_from=2020, eval_to=2022):
     mae = sum(abs(p - a) for p, a in zip(pred, act)) / len(pred)
     vegas_mae = sum(abs(v - a) for v, a in zip(veg, act)) / len(veg)
 
-    return {'mae': mae, 'vegas_mae': vegas_mae,
+    return {'mae': mae, 'vegas_mae': vegas_mae, 'games': games,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
 def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, eval_from=2020, eval_to=2024):

@@ -2,8 +2,8 @@ import dataloader
 import metrics
 import elo_model
 
-# warm-up 2018-19, VALIDATION 2020-22, TEST 2023-24 (two held-out seasons)
-YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+# warm-up 2018-19, VALIDATION 2020-22, TEST 2023-25 (three held-out seasons)
+YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
 
 df = dataloader.load_schedules(YEARS)
 pbp = dataloader.load_pbp(YEARS)
@@ -14,23 +14,39 @@ for K in [1, 1.5, 2, 3, 4]:
     v = elo_model.run(df, K=K, eval_from=2020, eval_to=2022)
     print(f"K={K}: MAE {v['mae']:.4f}  Brier {v['brier']:.4f}")
 
-best = elo_model.run(df, w=1, eval_from=2020, eval_to=2024)
+best = elo_model.run(df, w=1, eval_from=2020, eval_to=2025)
 counts, wins = elo_model.calibration_table(best['winprobs'], best['homewins'])
 print(f"\nCalibration (result, K=2):")
 for b in range(10):
     if counts[b] > 0:
         print(f"  bucket {b}: {wins[b]:>3}/{counts[b]:>3} = {wins[b]/counts[b]:.2f}")
 
-test = elo_model.run(df, K=2, eval_from=2023, eval_to=2024)
-print(f"\nTEST (2023-24, untouched): MAE {test['mae']:.4f}  vs Vegas {test['vegas_mae']:.4f}  Brier {test['brier']:.4f}")
+test = elo_model.run(df, K=2, eval_from=2023, eval_to=2025)
+print(f"\nTEST (2023-25, untouched): MAE {test['mae']:.4f}  vs Vegas {test['vegas_mae']:.4f}  Brier {test['brier']:.4f}")
 
 print("\nTOTALS VALIDATION (2020-22) — pick K here")
 for K in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
     tv = elo_model.run_totals(df, K=K, eval_from=2020, eval_to=2022)
     print(f"K={K}: MAE {tv['mae']:.4f}  vs Vegas {tv['vegas_mae']:.4f}")
 
-test_totals = elo_model.run_totals(df, K=0.6, eval_from=2023, eval_to=2024)
-print(f"\nTOTALS TEST (2023-24, untouched): MAE {test_totals['mae']:.4f}  vs Vegas {test_totals['vegas_mae']:.4f}")
+test_totals = elo_model.run_totals(df, K=0.6, eval_from=2023, eval_to=2025)
+print(f"\nTOTALS TEST (2023-25, untouched): MAE {test_totals['mae']:.4f}  vs Vegas {test_totals['vegas_mae']:.4f}")
+
+print("\nWIND VALIDATION (2020-22) — pick wind_coef here, K=0.6, threshold=15mph")
+print("judged on the OUTDOOR-only gap, not overall MAE (dome games are unaffected)")
+for wind_coef in [0, 0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.5, 2.0]:
+    w = elo_model.run_totals(df, K=0.6, wind_coef=wind_coef, eval_from=2020, eval_to=2022)
+    outdoor = [g for g in w['games'] if g['roof'] == 'outdoors']
+    m = sum(abs(g['pred'] - g['actual']) for g in outdoor) / len(outdoor)
+    v = sum(abs(g['vegas'] - g['actual']) for g in outdoor) / len(outdoor)
+    print(f"wind_coef={wind_coef}: outdoor Model MAE={m:.3f}  Vegas MAE={v:.3f}  gap={m-v:.3f}")
+
+test_totals_wind = elo_model.run_totals(df, K=0.6, eval_from=2023, eval_to=2025)
+outdoor_test = [g for g in test_totals_wind['games'] if g['roof'] == 'outdoors']
+om = sum(abs(g['pred'] - g['actual']) for g in outdoor_test) / len(outdoor_test)
+ov = sum(abs(g['vegas'] - g['actual']) for g in outdoor_test) / len(outdoor_test)
+print(f"\nTOTALS TEST w/ wind fix (2023-25, untouched): MAE {test_totals_wind['mae']:.4f}  vs Vegas {test_totals_wind['vegas_mae']:.4f}")
+print(f"  outdoor-only: Model MAE={om:.3f}  Vegas MAE={ov:.3f}  gap={om-ov:.3f}")
 
 print("\nQB REGRESSION VALIDATION (2020-22) — pick qb_regression here, K=2")
 for qb_regression in [0, 0.1, 0.2, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]:
