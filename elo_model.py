@@ -1,6 +1,6 @@
 from statistics import NormalDist
 
-def run_totals(df, K=2, hfa=1.5, scale=25, eval_from=2022, eval_to=2023):
+def run_totals(df, K=0.6, hfa=1.25, scale=25, eval_from=2020, eval_to=2022):
     """Walk-forward offense/defense Elo, predicting game TOTAL (home+away score).
 
     Each team has two ratings: off_elo (scoring ability) and def_elo (points
@@ -49,7 +49,7 @@ def run_totals(df, K=2, hfa=1.5, scale=25, eval_from=2022, eval_to=2023):
     return {'mae': mae, 'vegas_mae': vegas_mae,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
-def run(df, K=2, w=1.0, cap=20, hfa=1.5, sigma=16, qb_regression=1.0, eval_from=2022, eval_to=2024):
+def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, eval_from=2020, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
