@@ -14,3 +14,11 @@ def add_epa_margin(df, pbp):
 
     df = df.sort_values('gameday')
     return df
+
+
+def add_weather(df, pbp):
+    game_weather = pbp.groupby('game_id')['weather'].first().reset_index()
+    df = df.merge(game_weather, on='game_id')
+    df['bad_weather'] = (df['weather'].str.contains('rain', case=False, na=False) |
+                          df['weather'].str.contains('snow', case=False, na=False))
+    return df

@@ -1,7 +1,7 @@
 from statistics import NormalDist
 
 def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
-               eval_from=2020, eval_to=2022):
+               rain_snow_coef=8, eval_from=2020, eval_to=2022):
     """Walk-forward offense/defense Elo, predicting game TOTAL (home+away score).
 
     Each team has two ratings: off_elo (scoring ability) and def_elo (points
@@ -11,9 +11,10 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
     and the Vegas total_line.
 
     For outdoor/open-roof games, wind above `wind_threshold` mph subtracts
-    `wind_coef` points per mph over the threshold from the PREDICTION only —
-    it never touches the off_elo/def_elo rating updates, since wind is a
-    one-game condition, not a reflection of true team quality.
+    `wind_coef` points per mph over the threshold, and rain/snow (parsed from
+    the play-by-play 'weather' text) subtracts a flat `rain_snow_coef` points.
+    Both apply to the PREDICTION only — never the off_elo/def_elo rating
+    updates, since weather is a one-game condition, not true team quality.
     """
     off_elo = {t: 1500 for t in df['home_team'].unique()}
     def_elo = {t: 1500 for t in df['home_team'].unique()}
@@ -39,12 +40,15 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
         if row['roof'] in ('outdoors', 'open') and wind > wind_threshold:
             expected_total -= wind_coef * (wind - wind_threshold)
 
+        if row['roof'] in ('outdoors', 'open') and row['bad_weather']:
+            expected_total -= rain_snow_coef
+
         if eval_from <= row['season'] <= eval_to:
             pred.append(expected_total)
             act.append(row['total'])
             veg.append(row['total_line'])
             games.append({'home': home, 'away': away, 'week': row['week'],
-                          'roof': row['roof'],
+                          'roof': row['roof'], 'bad_weather': row['bad_weather'],
                           'pred': expected_total, 'actual': row['total'],
                           'vegas': row['total_line']})
 

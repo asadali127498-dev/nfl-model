@@ -8,6 +8,7 @@ YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
 df = dataloader.load_schedules(YEARS)
 pbp = dataloader.load_pbp(YEARS)
 df = metrics.add_epa_margin(df, pbp)
+df = metrics.add_weather(df, pbp)
 
 print("VALIDATION (2020-22) — pick K here")
 for K in [1, 1.5, 2, 3, 4]:
@@ -47,6 +48,22 @@ om = sum(abs(g['pred'] - g['actual']) for g in outdoor_test) / len(outdoor_test)
 ov = sum(abs(g['vegas'] - g['actual']) for g in outdoor_test) / len(outdoor_test)
 print(f"\nTOTALS TEST w/ wind fix (2023-25, untouched): MAE {test_totals_wind['mae']:.4f}  vs Vegas {test_totals_wind['vegas_mae']:.4f}")
 print(f"  outdoor-only: Model MAE={om:.3f}  Vegas MAE={ov:.3f}  gap={om-ov:.3f}")
+
+print("\nRAIN/SNOW VALIDATION (2020-22) — pick rain_snow_coef here, K=0.6")
+print("judged on bad-weather games only (small sample — expect a lot of noise)")
+for rain_snow_coef in [0, 2, 5, 7, 8, 9, 10, 12, 16, 20]:
+    r = elo_model.run_totals(df, K=0.6, rain_snow_coef=rain_snow_coef, eval_from=2020, eval_to=2022)
+    bad = [g for g in r['games'] if g['bad_weather']]
+    m = sum(abs(g['pred'] - g['actual']) for g in bad) / len(bad)
+    v = sum(abs(g['vegas'] - g['actual']) for g in bad) / len(bad)
+    print(f"rain_snow_coef={rain_snow_coef}: n={len(bad)}  Model MAE={m:.3f}  Vegas MAE={v:.3f}  gap={m-v:.3f}")
+
+test_totals_rain = elo_model.run_totals(df, K=0.6, eval_from=2023, eval_to=2025)
+bad_test = [g for g in test_totals_rain['games'] if g['bad_weather']]
+bm = sum(abs(g['pred'] - g['actual']) for g in bad_test) / len(bad_test)
+bv = sum(abs(g['vegas'] - g['actual']) for g in bad_test) / len(bad_test)
+print(f"\nTOTALS TEST w/ rain/snow fix (2023-25, untouched): MAE {test_totals_rain['mae']:.4f}  vs Vegas {test_totals_rain['vegas_mae']:.4f}")
+print(f"  bad-weather-only: Model MAE={bm:.3f}  Vegas MAE={bv:.3f}  gap={bm-bv:.3f}")
 
 print("\nQB REGRESSION VALIDATION (2020-22) — pick qb_regression here, K=2")
 for qb_regression in [0, 0.1, 0.2, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]:
