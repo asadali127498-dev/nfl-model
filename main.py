@@ -65,6 +65,24 @@ bv = sum(abs(g['vegas'] - g['actual']) for g in bad_test) / len(bad_test)
 print(f"\nTOTALS TEST w/ rain/snow fix (2023-25, untouched): MAE {test_totals_rain['mae']:.4f}  vs Vegas {test_totals_rain['vegas_mae']:.4f}")
 print(f"  bad-weather-only: Model MAE={bm:.3f}  Vegas MAE={bv:.3f}  gap={bm-bv:.3f}")
 
+print("\nCLEAR/SUNNY VALIDATION (2020-22) — pick clear_weather_coef here, K=0.6")
+print("SHELVED: coef that helped validation ran opposite the raw data (clear games")
+print("score HIGHER on average, but a NEGATIVE coef improved the fit) — a confound")
+print("red flag, confirmed by the test failing. Kept here for a transparent record.")
+for clear_weather_coef in [-3, -2, -1, -0.5, 0, 0.5, 1, 2, 3]:
+    c = elo_model.run_totals(df, K=0.6, clear_weather_coef=clear_weather_coef, eval_from=2020, eval_to=2022)
+    clear = [g for g in c['games'] if g['clear_weather']]
+    m = sum(abs(g['pred'] - g['actual']) for g in clear) / len(clear)
+    v = sum(abs(g['vegas'] - g['actual']) for g in clear) / len(clear)
+    print(f"clear_weather_coef={clear_weather_coef}: n={len(clear)}  Model MAE={m:.3f}  Vegas MAE={v:.3f}  gap={m-v:.3f}")
+
+test_totals_clear = elo_model.run_totals(df, K=0.6, eval_from=2023, eval_to=2025)
+clear_test = [g for g in test_totals_clear['games'] if g['clear_weather']]
+cm = sum(abs(g['pred'] - g['actual']) for g in clear_test) / len(clear_test)
+cv = sum(abs(g['vegas'] - g['actual']) for g in clear_test) / len(clear_test)
+print(f"\nTOTALS TEST w/o clear-weather fix (2023-25, untouched): MAE {test_totals_clear['mae']:.4f}  vs Vegas {test_totals_clear['vegas_mae']:.4f}")
+print(f"  clear-weather-only: Model MAE={cm:.3f}  Vegas MAE={cv:.3f}  gap={cm-cv:.3f}")
+
 print("\nQB REGRESSION VALIDATION (2020-22) — pick qb_regression here, K=2")
 for qb_regression in [0, 0.1, 0.2, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]:
     q = elo_model.run(df, K=2, qb_regression=qb_regression, eval_from=2020, eval_to=2022)

@@ -21,4 +21,6 @@ def add_weather(df, pbp):
     df = df.merge(game_weather, on='game_id')
     df['bad_weather'] = (df['weather'].str.contains('rain', case=False, na=False) |
                           df['weather'].str.contains('snow', case=False, na=False))
+    df['clear_weather'] = (df['weather'].str.contains('sunny', case=False, na=False) |
+                            df['weather'].str.contains('clear', case=False, na=False))
     return df
