@@ -71,7 +71,7 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
     return {'mae': mae, 'vegas_mae': vegas_mae, 'games': games,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
-def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, eval_from=2020, eval_to=2024):
+def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef=0.0, eval_from=2020, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
@@ -101,7 +101,8 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, eval_from
             elo[away] = 1500 + qb_regression * (elo[away] - 1500)
         blended = w * row['result'] + (1 - w) * row['epa_margin']
         actual = max(min(blended, cap), -cap)
-        expected = max(min((elo[home] - elo[away]) / 25 + hfa, 20), -20)
+        rest_diff = row['home_rest'] - row['away_rest']
+        expected = max(min((elo[home] - elo[away]) / 25 + hfa + rest_coef * rest_diff, 20), -20)
         win_prob = NormalDist().cdf(expected / sigma)
 
         if eval_from <= row['season'] <= eval_to:
@@ -111,7 +112,8 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, eval_from
             winprobs.append(win_prob)
             homewins.append(1 if row['result'] > 0 else 0)
             games.append({'home': home, 'away': away, 'week': row['week'],
-                          'error': abs(expected - row['result'])})
+                          'error': abs(expected - row['result']),
+                          'vegas': row['spread_line'], 'actual': row['result']})
 
         elo[home] += K * (actual - expected)
         elo[away] -= K * (actual - expected)
