@@ -55,6 +55,17 @@ for clear_weather_coef in [-3, -2, -1, -0.5, 0, 0.5, 1, 2, 3]:
     v = sum(abs(g['vegas'] - g['actual']) for g in clear) / len(clear)
     print(f"clear_weather_coef={clear_weather_coef}: n={len(clear)}  Model MAE={m:.3f}  Vegas MAE={v:.3f}  gap={m-v:.3f}")
 
+print("\nDIVISIONAL VALIDATION (2020-22) — pick div_coef here, K=0.6")
+print("judged on divisional games only. Raw-data check: avg total is basically")
+print("identical for div vs non-div early season (46.6/45.1) and late (45.7/45.2)")
+print("once controlled for week-of-season, so this isn't a pure scheduling artifact.")
+for div_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3]:
+    d = elo_model.run_totals(df, K=0.6, div_coef=div_coef, eval_from=2020, eval_to=2022)
+    div = [g for g in d['games'] if g['div_game']]
+    m = sum(abs(g['pred'] - g['actual']) for g in div) / len(div)
+    v = sum(abs(g['vegas'] - g['actual']) for g in div) / len(div)
+    print(f"div_coef={div_coef}: n={len(div)}  Model MAE={m:.3f}  Vegas MAE={v:.3f}  gap={m-v:.3f}")
+
 print("\nQB REGRESSION VALIDATION (2020-22) — pick qb_regression here, K=2")
 for qb_regression in [0, 0.1, 0.2, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]:
     q = elo_model.run(df, K=2, qb_regression=qb_regression, eval_from=2020, eval_to=2022)
@@ -80,6 +91,18 @@ for hfa in [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0]:
     n2, r2 = elo_model.bucket_rate(h['winprobs'], h['homewins'], 0.5, 0.6)
     print(f"hfa={hfa}: MAE {h['mae']:.4f}  Brier {h['brier']:.4f}  "
           f"underdog(.4-.5)={r1:.3f} (n={n1})  favorite(.5-.6)={r2:.3f} (n={n2})")
+
+print("\nLATE-SEASON REPLICATION CHECK (2020-22 validation) — does the Session 25")
+print("Weeks1-4 vs Weeks5-18 gap-to-Vegas pattern (0.21 -> 0.59 on 2023-25 test) hold here?")
+val = elo_model.run(df, K=2, eval_from=2020, eval_to=2022)
+val_early = [g for g in val['games'] if g['week'] <= 4]
+val_late = [g for g in val['games'] if g['week'] >= 5]
+ve_mae = sum(g['error'] for g in val_early) / len(val_early)
+vl_mae = sum(g['error'] for g in val_late) / len(val_late)
+ve_vegas = sum(abs(g['vegas'] - g['actual']) for g in val_early) / len(val_early)
+vl_vegas = sum(abs(g['vegas'] - g['actual']) for g in val_late) / len(val_late)
+print(f"Weeks 1-4:  Model MAE {ve_mae:.4f}  Vegas MAE {ve_vegas:.4f}  gap {ve_mae - ve_vegas:.4f}  (n={len(val_early)})")
+print(f"Weeks 5-18: Model MAE {vl_mae:.4f}  Vegas MAE {vl_vegas:.4f}  gap {vl_mae - vl_vegas:.4f}  (n={len(val_late)})")
 
 # ============================================================
 # FINAL HELD-OUT TEST (2023-25) — one honest look per parameter,
@@ -134,3 +157,10 @@ cm = sum(abs(g['pred'] - g['actual']) for g in clear_test) / len(clear_test)
 cv = sum(abs(g['vegas'] - g['actual']) for g in clear_test) / len(clear_test)
 print(f"\nTOTALS TEST w/o clear-weather fix (2023-25, untouched): MAE {test_totals_clear['mae']:.4f}  vs Vegas {test_totals_clear['vegas_mae']:.4f}")
 print(f"  clear-weather-only: Model MAE={cm:.3f}  Vegas MAE={cv:.3f}  gap={cm-cv:.3f}")
+
+test_totals_div = elo_model.run_totals(df, K=0.6, div_coef=1.5, eval_from=2023, eval_to=2025)
+div_test = [g for g in test_totals_div['games'] if g['div_game']]
+dm = sum(abs(g['pred'] - g['actual']) for g in div_test) / len(div_test)
+dv = sum(abs(g['vegas'] - g['actual']) for g in div_test) / len(div_test)
+print(f"\nTOTALS TEST w/ div fix (2023-25, untouched): MAE {test_totals_div['mae']:.4f}  vs Vegas {test_totals_div['vegas_mae']:.4f}")
+print(f"  divisional-only: Model MAE={dm:.3f}  Vegas MAE={dv:.3f}  gap={dm-dv:.3f}")

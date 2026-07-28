@@ -1,7 +1,7 @@
 from statistics import NormalDist
 
 def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
-               rain_snow_coef=8, clear_weather_coef=0, eval_from=2020, eval_to=2022):
+               rain_snow_coef=8, clear_weather_coef=0, div_coef=1.5, eval_from=2020, eval_to=2022):
     """Walk-forward offense/defense Elo, predicting game TOTAL (home+away score).
 
     Each team has two ratings: off_elo (scoring ability) and def_elo (points
@@ -15,6 +15,9 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
     the play-by-play 'weather' text) subtracts a flat `rain_snow_coef` points.
     Both apply to the PREDICTION only — never the off_elo/def_elo rating
     updates, since weather is a one-game condition, not true team quality.
+    `div_coef` subtracts a flat amount for divisional games (same
+    prediction-only treatment — familiarity is a matchup trait, not a
+    team-quality signal that should feed the ratings).
     """
     off_elo = {t: 1500 for t in df['home_team'].unique()}
     def_elo = {t: 1500 for t in df['home_team'].unique()}
@@ -46,13 +49,16 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
         if row['roof'] in ('outdoors', 'open') and row['clear_weather']:
             expected_total += clear_weather_coef
 
+        if row['div_game']:
+            expected_total -= div_coef
+
         if eval_from <= row['season'] <= eval_to:
             pred.append(expected_total)
             act.append(row['total'])
             veg.append(row['total_line'])
             games.append({'home': home, 'away': away, 'week': row['week'],
                           'roof': row['roof'], 'bad_weather': row['bad_weather'],
-                          'clear_weather': row['clear_weather'],
+                          'clear_weather': row['clear_weather'], 'div_game': row['div_game'],
                           'pred': expected_total, 'actual': row['total'],
                           'vegas': row['total_line']})
 
