@@ -1,4 +1,5 @@
 from statistics import NormalDist
+import pandas as pd
 
 def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
                rain_snow_coef=8, clear_weather_coef=0, div_coef=1.5, eval_from=2020, eval_to=2022):
@@ -77,16 +78,28 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
     return {'mae': mae, 'vegas_mae': vegas_mae, 'games': games,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
-def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef=0.0, eval_from=2020, eval_to=2024):
+def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef=0.0,
+        qb_k=0.15, qb_boost=5.0, qb_retention=1.0, eval_from=2020, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
     capped at +/-cap to balance blowout games. w=1 is pure scoreboard, w=0 is pure EPA.
     Predictions are graded out-of-sample from season 2022-2024, always
     against the real scoreboard (`result`). Returns a dict of metrics.
+
+    qb_rating is a SEPARATE, persistent rating per passer_id (not per team),
+    tracked as an exponential moving average of the QB's own passing EPA/dropback,
+    in EPA units (not Elo points). It carries across team changes since it's keyed
+    by player, not team. `qb_boost` blends the rating gap into the prediction
+    (prediction-only surface, but the QB rating itself updates every game like
+    any other rating). `qb_retention` controls how much of the rating survives
+    each offseason (1.0 = untouched, <1 regresses toward the league-average QB,
+    >1 pushes further from average — for QBs who are still improving).
     """
     last_qb = {}
     elo = {t: 1500 for t in df['home_team'].unique()}
+    qb_rating = {}
+    qb_baseline = pd.concat([df['home_qb_epa'], df['away_qb_epa']]).mean()
     current_season = None
     pred, act, veg, winprobs, homewins, games = [], [], [], [], [], []
 
@@ -95,6 +108,8 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
             if current_season is not None:
                 for t in elo:
                     elo[t] = 1500 + 0.75 * (elo[t] - 1500)
+                for qb in qb_rating:
+                    qb_rating[qb] = qb_baseline + qb_retention * (qb_rating[qb] - qb_baseline)
             current_season = row['season']
         home_qb = row['home_qb_id']
         away_qb = row['away_qb_id']
@@ -108,7 +123,10 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
         blended = w * row['result'] + (1 - w) * row['epa_margin']
         actual = max(min(blended, cap), -cap)
         rest_diff = row['home_rest'] - row['away_rest']
-        expected = max(min((elo[home] - elo[away]) / 25 + hfa + rest_coef * rest_diff, 20), -20)
+        home_qb_rating = qb_rating.get(home_qb, qb_baseline)
+        away_qb_rating = qb_rating.get(away_qb, qb_baseline)
+        expected = max(min((elo[home] - elo[away]) / 25 + hfa + rest_coef * rest_diff
+                            + qb_boost * (home_qb_rating - away_qb_rating), 20), -20)
         win_prob = NormalDist().cdf(expected / sigma)
 
         if eval_from <= row['season'] <= eval_to:
@@ -120,6 +138,11 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
             games.append({'home': home, 'away': away, 'week': row['week'],
                           'error': abs(expected - row['result']),
                           'vegas': row['spread_line'], 'actual': row['result']})
+
+        if pd.notna(row['home_qb_epa']):
+            qb_rating[home_qb] = home_qb_rating + qb_k * (row['home_qb_epa'] - home_qb_rating)
+        if pd.notna(row['away_qb_epa']):
+            qb_rating[away_qb] = away_qb_rating + qb_k * (row['away_qb_epa'] - away_qb_rating)
 
         elo[home] += K * (actual - expected)
         elo[away] -= K * (actual - expected)

@@ -9,6 +9,7 @@ df = dataloader.load_schedules(YEARS)
 pbp = dataloader.load_pbp(YEARS)
 df = metrics.add_epa_margin(df, pbp)
 df = metrics.add_weather(df, pbp)
+df = metrics.add_qb_epa(df, pbp)
 
 # ============================================================
 # VALIDATION (2020-22) — all tuning happens here, nothing below
@@ -70,6 +71,13 @@ print("\nQB REGRESSION VALIDATION (2020-22) — pick qb_regression here, K=2")
 for qb_regression in [0, 0.1, 0.2, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]:
     q = elo_model.run(df, K=2, qb_regression=qb_regression, eval_from=2020, eval_to=2022)
     print(f"qb_regression={qb_regression}: MAE {q['mae']:.4f}  Brier {q['brier']:.4f}")
+
+print("\nQB RATING VALIDATION (2020-22) — pick qb_boost here, K=2, qb_k=0.15, qb_retention=1.0")
+print("qb_rating is a persistent per-passer EMA of passing EPA/dropback, carried")
+print("across team changes (unlike team elo, which resets 25% every offseason).")
+for qb_boost in [0, 2, 4, 5, 6, 8, 10, 12, 15]:
+    qr = elo_model.run(df, K=2, qb_boost=qb_boost, eval_from=2020, eval_to=2022)
+    print(f"qb_boost={qb_boost}: MAE {qr['mae']:.4f}  Brier {qr['brier']:.4f}")
 
 print("\nTOTALS SCALE VALIDATION (2020-22) — pick scale here, K=0.6")
 for scale in [15, 20, 25, 30, 35]:
@@ -133,6 +141,10 @@ print(f"Weeks 5-18: Model MAE {late_mae:.4f}  Vegas MAE {late_vegas_mae:.4f}  ga
 test_rest = elo_model.run(df, K=2, rest_coef=0.3, eval_from=2023, eval_to=2025)
 print(f"\nTEST w/ rest fix (2023-25, untouched): MAE {test_rest['mae']:.4f}  vs Vegas {test_rest['vegas_mae']:.4f}  Brier {test_rest['brier']:.4f}")
 print("(baseline w/o fix was MAE 10.2414, Brier 0.2247 — rest fix is a wash, not an improvement)")
+
+test_qb = elo_model.run(df, K=2, qb_boost=5, eval_from=2023, eval_to=2025)
+print(f"\nTEST w/ QB rating (2023-25, untouched): MAE {test_qb['mae']:.4f}  vs Vegas {test_qb['vegas_mae']:.4f}  Brier {test_qb['brier']:.4f}")
+print("(baseline w/o fix was MAE 10.2414, Brier 0.2247)")
 
 test_totals = elo_model.run_totals(df, K=0.6, eval_from=2023, eval_to=2025)
 print(f"\nTOTALS TEST (2023-25, untouched): MAE {test_totals['mae']:.4f}  vs Vegas {test_totals['vegas_mae']:.4f}")

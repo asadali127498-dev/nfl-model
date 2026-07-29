@@ -16,6 +16,23 @@ def add_epa_margin(df, pbp):
     return df
 
 
+def add_qb_epa(df, pbp):
+    dropbacks = pbp[pbp['qb_dropback'] == 1]
+    qb_epa = dropbacks.groupby(['game_id', 'passer_id'])['epa'].mean().reset_index()
+
+    df = df.merge(qb_epa, left_on=['game_id', 'home_qb_id'],
+                  right_on=['game_id', 'passer_id'], how='left')
+    df = df.rename(columns={'epa': 'home_qb_epa'})
+    df = df.drop(columns=['passer_id'])
+    df = df.merge(qb_epa, left_on=['game_id', 'away_qb_id'],
+                  right_on=['game_id', 'passer_id'], how='left')
+    df = df.rename(columns={'epa': 'away_qb_epa'})
+    df = df.drop(columns=['passer_id'])
+
+    df = df.sort_values('gameday')
+    return df
+
+
 def add_weather(df, pbp):
     game_weather = pbp.groupby('game_id')['weather'].first().reset_index()
     df = df.merge(game_weather, on='game_id')
