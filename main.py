@@ -79,6 +79,21 @@ for qb_boost in [0, 2, 4, 5, 6, 8, 10, 12, 15]:
     qr = elo_model.run(df, K=2, qb_boost=qb_boost, eval_from=2020, eval_to=2022)
     print(f"qb_boost={qb_boost}: MAE {qr['mae']:.4f}  Brier {qr['brier']:.4f}")
 
+print("\nQB_K VALIDATION (2020-22) — pick qb_k here, K=2, qb_boost=5, qb_retention=1.0")
+print("qb_k is the EMA smoothing rate for the QB rating (0.15 was an unswept prior)")
+print("SHELVED RESULT: qb_k=0.05 looked better here, but combined with the retention")
+print("tune below, the honest test came back WORSE than the qb_k=0.15 default. Reverted.")
+for qb_k in [0.01, 0.02, 0.03, 0.05, 0.08, 0.1, 0.15, 0.2, 0.3]:
+    qk = elo_model.run(df, K=2, qb_boost=5, qb_k=qb_k, eval_from=2020, eval_to=2022)
+    print(f"qb_k={qb_k}: MAE {qk['mae']:.4f}  Brier {qk['brier']:.4f}")
+
+print("\nQB_RETENTION VALIDATION (2020-22) — pick qb_retention here, K=2, qb_boost=5, qb_k=0.05")
+print("1.0 = untouched offseason; <1 regresses toward league-avg QB; >1 pushes further")
+print("from average (Asad's hypothesis: still-improving QBs might warrant >1).")
+for qb_retention in [1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.5, 3.0]:
+    qret = elo_model.run(df, K=2, qb_boost=5, qb_k=0.05, qb_retention=qb_retention, eval_from=2020, eval_to=2022)
+    print(f"qb_retention={qb_retention}: MAE {qret['mae']:.4f}  Brier {qret['brier']:.4f}")
+
 print("\nTOTALS SCALE VALIDATION (2020-22) — pick scale here, K=0.6")
 for scale in [15, 20, 25, 30, 35]:
     s = elo_model.run_totals(df, K=0.6, scale=scale, eval_from=2020, eval_to=2022)
@@ -143,8 +158,13 @@ print(f"\nTEST w/ rest fix (2023-25, untouched): MAE {test_rest['mae']:.4f}  vs 
 print("(baseline w/o fix was MAE 10.2414, Brier 0.2247 — rest fix is a wash, not an improvement)")
 
 test_qb = elo_model.run(df, K=2, qb_boost=5, eval_from=2023, eval_to=2025)
-print(f"\nTEST w/ QB rating (2023-25, untouched): MAE {test_qb['mae']:.4f}  vs Vegas {test_qb['vegas_mae']:.4f}  Brier {test_qb['brier']:.4f}")
-print("(baseline w/o fix was MAE 10.2414, Brier 0.2247)")
+print(f"\nTEST w/ QB rating (2023-25, untouched, qb_k=0.15/qb_retention=1.0 — shipped defaults): "
+      f"MAE {test_qb['mae']:.4f}  vs Vegas {test_qb['vegas_mae']:.4f}  Brier {test_qb['brier']:.4f}")
+print("(baseline w/o QB rating was MAE 10.2414, Brier 0.2247)")
+
+test_qb_tuned = elo_model.run(df, K=2, qb_boost=5, qb_k=0.05, qb_retention=1.8, eval_from=2023, eval_to=2025)
+print(f"TEST w/ Session-28 'tuned' qb_k=0.05/qb_retention=1.8 (SHELVED — worse than above): "
+      f"MAE {test_qb_tuned['mae']:.4f}  Brier {test_qb_tuned['brier']:.4f}")
 
 test_totals = elo_model.run_totals(df, K=0.6, eval_from=2023, eval_to=2025)
 print(f"\nTOTALS TEST (2023-25, untouched): MAE {test_totals['mae']:.4f}  vs Vegas {test_totals['vegas_mae']:.4f}")

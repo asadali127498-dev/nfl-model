@@ -94,9 +94,18 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
     (prediction-only surface, but the QB rating itself updates every game like
     any other rating). `qb_retention` controls how much of the rating survives
     each offseason (1.0 = untouched, <1 regresses toward the league-average QB,
-    >1 pushes further from average — for QBs who are still improving).
+    >1 pushes further from average — for QBs who are still improving). Retention
+    only applies to QBs who played in the season that just ended — an inactive/
+    retired QB's rating is left frozen rather than compounded every offseason
+    with nothing (no games) to ever correct it back.
+
+    qb_k=0.05/qb_retention=1.8 were tuned in Session 28 and looked better on
+    validation, but the combined honest test (2023-25) came back WORSE
+    (MAE 10.2421) than these Session 27 defaults (MAE 10.2107) — reverted
+    intentionally, not carried forward. See PROGRESS.md Session 28.
     """
     last_qb = {}
+    qb_last_season = {}
     elo = {t: 1500 for t in df['home_team'].unique()}
     qb_rating = {}
     qb_baseline = pd.concat([df['home_qb_epa'], df['away_qb_epa']]).mean()
@@ -109,7 +118,8 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
                 for t in elo:
                     elo[t] = 1500 + 0.75 * (elo[t] - 1500)
                 for qb in qb_rating:
-                    qb_rating[qb] = qb_baseline + qb_retention * (qb_rating[qb] - qb_baseline)
+                    if qb_last_season.get(qb) == current_season:
+                        qb_rating[qb] = qb_baseline + qb_retention * (qb_rating[qb] - qb_baseline)
             current_season = row['season']
         home_qb = row['home_qb_id']
         away_qb = row['away_qb_id']
@@ -148,12 +158,14 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
         elo[away] -= K * (actual - expected)
         last_qb[home] = home_qb
         last_qb[away] = away_qb
+        qb_last_season[home_qb] = row['season']
+        qb_last_season[away_qb] = row['season']
     mae = sum(abs(p - a) for p, a in zip(pred, act)) / len(pred)
     vegas_mae = sum(abs(v - a) for v, a in zip(veg, act)) / len(veg)
     brier = sum((p - hw) ** 2 for p, hw in zip(winprobs, homewins)) / len(winprobs)
 
     return {'mae': mae, 'vegas_mae': vegas_mae, 'brier': brier,
-            'elo': elo, 'winprobs': winprobs, 'homewins': homewins,
+            'elo': elo, 'qb_rating': qb_rating, 'winprobs': winprobs, 'homewins': homewins,
             'games': games, 'n': len(pred)}
 
 
