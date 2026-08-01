@@ -10,6 +10,7 @@ pbp = dataloader.load_pbp(YEARS)
 df = metrics.add_epa_margin(df, pbp)
 df = metrics.add_weather(df, pbp)
 df = metrics.add_qb_epa(df, pbp)
+df = metrics.add_travel(df)
 
 # ============================================================
 # VALIDATION (2020-22) — all tuning happens here, nothing below
@@ -94,6 +95,13 @@ for qb_retention in [1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.5, 3.0]:
     qret = elo_model.run(df, K=2, qb_boost=5, qb_k=0.05, qb_retention=qb_retention, eval_from=2020, eval_to=2022)
     print(f"qb_retention={qb_retention}: MAE {qret['mae']:.4f}  Brier {qret['brier']:.4f}")
 
+print("\nTRAVEL VALIDATION (2020-22) — pick travel_coef here, K=2")
+print("WEAK PRIOR going in: corr(away_travel, result)=-0.04, bucket pattern non-monotonic,")
+print("longest-distance bucket even reverses direction. Testing anyway for a clean record.")
+for travel_coef in [-1.0, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0]:
+    tr = elo_model.run(df, K=2, travel_coef=travel_coef, eval_from=2020, eval_to=2022)
+    print(f"travel_coef={travel_coef}: MAE {tr['mae']:.4f}  Brier {tr['brier']:.4f}")
+
 print("\nTOTALS SCALE VALIDATION (2020-22) — pick scale here, K=0.6")
 for scale in [15, 20, 25, 30, 35]:
     s = elo_model.run_totals(df, K=0.6, scale=scale, eval_from=2020, eval_to=2022)
@@ -156,6 +164,10 @@ print(f"Weeks 5-18: Model MAE {late_mae:.4f}  Vegas MAE {late_vegas_mae:.4f}  ga
 test_rest = elo_model.run(df, K=2, rest_coef=0.3, eval_from=2023, eval_to=2025)
 print(f"\nTEST w/ rest fix (2023-25, untouched): MAE {test_rest['mae']:.4f}  vs Vegas {test_rest['vegas_mae']:.4f}  Brier {test_rest['brier']:.4f}")
 print("(baseline w/o fix was MAE 10.2414, Brier 0.2247 — rest fix is a wash, not an improvement)")
+
+test_travel = elo_model.run(df, K=2, travel_coef=-0.4, eval_from=2023, eval_to=2025)
+print(f"\nTEST w/ travel fix (2023-25, untouched): MAE {test_travel['mae']:.4f}  vs Vegas {test_travel['vegas_mae']:.4f}  Brier {test_travel['brier']:.4f}")
+print("(baseline w/o fix was MAE 10.2414, Brier 0.2247)")
 
 test_qb = elo_model.run(df, K=2, qb_boost=5, eval_from=2023, eval_to=2025)
 print(f"\nTEST w/ QB rating (2023-25, untouched, qb_k=0.15/qb_retention=1.0 — shipped defaults): "

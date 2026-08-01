@@ -79,7 +79,7 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
 def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef=0.0,
-        qb_k=0.15, qb_boost=5.0, qb_retention=1.0, eval_from=2020, eval_to=2024):
+        qb_k=0.15, qb_boost=5.0, qb_retention=1.0, travel_coef=-0.4, eval_from=2020, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
@@ -103,6 +103,10 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
     validation, but the combined honest test (2023-25) came back WORSE
     (MAE 10.2421) than these Session 27 defaults (MAE 10.2107) — reverted
     intentionally, not carried forward. See PROGRESS.md Session 28.
+
+    `travel_coef` boosts the home team's expected margin based on how far
+    (in thousands of miles) the AWAY team traveled from its own stadium —
+    prediction-only, home team's own rating/travel is always 0 by definition.
     """
     last_qb = {}
     qb_last_season = {}
@@ -136,7 +140,8 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
         home_qb_rating = qb_rating.get(home_qb, qb_baseline)
         away_qb_rating = qb_rating.get(away_qb, qb_baseline)
         expected = max(min((elo[home] - elo[away]) / 25 + hfa + rest_coef * rest_diff
-                            + qb_boost * (home_qb_rating - away_qb_rating), 20), -20)
+                            + qb_boost * (home_qb_rating - away_qb_rating)
+                            + travel_coef * (row['away_travel'] / 1000), 20), -20)
         win_prob = NormalDist().cdf(expected / sigma)
 
         if eval_from <= row['season'] <= eval_to:
