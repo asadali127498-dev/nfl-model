@@ -33,6 +33,27 @@ def add_travel(df):
     return df
 
 
+# Hours behind Eastern time, by team. Used to flag the "circadian rhythm"
+# case: an away team from a more-western timezone playing an early (<=1pm ET)
+# kickoff, whose body clock is still on morning time relative to the home team.
+TZ_OFFSET = {
+    'BAL': 0, 'BUF': 0, 'CAR': 0, 'CIN': 0, 'CLE': 0, 'DET': 0, 'IND': 0, 'JAX': 0,
+    'MIA': 0, 'NE': 0, 'NYG': 0, 'NYJ': 0, 'PHI': 0, 'PIT': 0, 'TB': 0, 'WAS': 0, 'ATL': 0,
+    'CHI': -1, 'DAL': -1, 'GB': -1, 'HOU': -1, 'KC': -1, 'MIN': -1, 'NO': -1, 'TEN': -1,
+    'DEN': -2, 'ARI': -2,
+    'LA': -3, 'LAC': -3, 'LV': -3, 'SF': -3, 'SEA': -3, 'OAK': -3,
+}
+
+
+def add_body_clock(df):
+    df = df.copy()
+    away_tz = df['away_team'].map(TZ_OFFSET)
+    home_tz = df['home_team'].map(TZ_OFFSET)
+    kickoff_hour = df['gametime'].str.split(':').str[0].astype(int)
+    df['west_to_east_early'] = (away_tz < home_tz) & (kickoff_hour <= 13)
+    return df
+
+
 def add_epa_margin(df, pbp):
     game_epa = pbp.groupby(['game_id', 'posteam'])['epa'].sum().reset_index()
 

@@ -11,6 +11,7 @@ df = metrics.add_epa_margin(df, pbp)
 df = metrics.add_weather(df, pbp)
 df = metrics.add_qb_epa(df, pbp)
 df = metrics.add_travel(df)
+df = metrics.add_body_clock(df)
 
 # ============================================================
 # VALIDATION (2020-22) — all tuning happens here, nothing below
@@ -101,6 +102,19 @@ print("longest-distance bucket even reverses direction. Testing anyway for a cle
 for travel_coef in [-1.0, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0]:
     tr = elo_model.run(df, K=2, travel_coef=travel_coef, eval_from=2020, eval_to=2022)
     print(f"travel_coef={travel_coef}: MAE {tr['mae']:.4f}  Brier {tr['brier']:.4f}")
+
+print("\nBODY CLOCK VALIDATION (2020-22) — pick body_clock_coef here, K=2, travel_coef=-0.4")
+print("Session-30 follow-up: raw check showed west_to_east_early games average")
+print("home margin ~-0.03 vs ~+1.96 elsewhere — a ~2pt gap, much cleaner than raw distance.")
+for body_clock_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3, 4]:
+    bc = elo_model.run(df, K=2, body_clock_coef=body_clock_coef, eval_from=2020, eval_to=2022)
+    print(f"body_clock_coef={body_clock_coef}: MAE {bc['mae']:.4f}  Brier {bc['brier']:.4f}")
+
+print("\nBODY CLOCK VALIDATION, ISOLATED (2020-22) — same sweep but travel_coef=0")
+print("to check whether travel_coef was already absorbing this signal")
+for body_clock_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3, 4]:
+    bc = elo_model.run(df, K=2, travel_coef=0, body_clock_coef=body_clock_coef, eval_from=2020, eval_to=2022)
+    print(f"body_clock_coef={body_clock_coef}: MAE {bc['mae']:.4f}  Brier {bc['brier']:.4f}")
 
 print("\nTOTALS SCALE VALIDATION (2020-22) — pick scale here, K=0.6")
 for scale in [15, 20, 25, 30, 35]:

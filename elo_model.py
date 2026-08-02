@@ -79,7 +79,8 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
 def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef=0.0,
-        qb_k=0.15, qb_boost=5.0, qb_retention=1.0, travel_coef=-0.4, eval_from=2020, eval_to=2024):
+        qb_k=0.15, qb_boost=5.0, qb_retention=1.0, travel_coef=-0.4, body_clock_coef=0.0,
+        eval_from=2020, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
@@ -141,7 +142,8 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
         away_qb_rating = qb_rating.get(away_qb, qb_baseline)
         expected = max(min((elo[home] - elo[away]) / 25 + hfa + rest_coef * rest_diff
                             + qb_boost * (home_qb_rating - away_qb_rating)
-                            + travel_coef * (row['away_travel'] / 1000), 20), -20)
+                            + travel_coef * (row['away_travel'] / 1000)
+                            - body_clock_coef * row['west_to_east_early'], 20), -20)
         win_prob = NormalDist().cdf(expected / sigma)
 
         if eval_from <= row['season'] <= eval_to:
