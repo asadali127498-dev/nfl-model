@@ -87,6 +87,33 @@ def add_qb_epa(df, pbp):
     return df
 
 
+# Rough position-importance tiers for injury severity, excluding QB (already
+# covered by the separate persistent QB rating — including it here would
+# double-count the same signal, same trap as travel_coef/body_clock_coef).
+POSITION_WEIGHT = {
+    'WR': 2, 'T': 2, 'CB': 2, 'DE': 2,
+    'TE': 1, 'G': 1, 'C': 1, 'DT': 1, 'LB': 1, 'S': 1,
+    'RB': 0.5, 'FB': 0.5, 'K': 0.5, 'P': 0.5, 'LS': 0.5,
+}
+
+
+def add_injuries(df, injuries):
+    out = injuries[(injuries['report_status'] == 'Out') & (injuries['position'] != 'QB')].copy()
+    out['weight'] = out['position'].map(POSITION_WEIGHT).fillna(0)
+    severity = out.groupby(['season', 'week', 'team'])['weight'].sum().reset_index()
+    severity = severity.rename(columns={'weight': 'severity'})
+
+    df = df.merge(severity, left_on=['season', 'week', 'home_team'],
+                  right_on=['season', 'week', 'team'], how='left')
+    df = df.rename(columns={'severity': 'home_severity'}).drop(columns=['team'])
+    df = df.merge(severity, left_on=['season', 'week', 'away_team'],
+                  right_on=['season', 'week', 'team'], how='left')
+    df = df.rename(columns={'severity': 'away_severity'}).drop(columns=['team'])
+    df['home_severity'] = df['home_severity'].fillna(0)
+    df['away_severity'] = df['away_severity'].fillna(0)
+    return df
+
+
 def add_weather(df, pbp):
     game_weather = pbp.groupby('game_id')['weather'].first().reset_index()
     df = df.merge(game_weather, on='game_id')

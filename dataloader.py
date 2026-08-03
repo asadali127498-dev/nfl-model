@@ -7,6 +7,9 @@ def load_schedules(years):
 
 def load_pbp(years):
     pbp = nfl.import_pbp_data(years)
-    pbp = pbp[pbp['posteam'].notna()]                      
+    pbp = pbp[pbp['posteam'].notna()]
     return pbp
+
+def load_injuries(years):
+    return nfl.import_injuries(years)
 

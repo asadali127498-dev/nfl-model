@@ -12,6 +12,8 @@ df = metrics.add_weather(df, pbp)
 df = metrics.add_qb_epa(df, pbp)
 df = metrics.add_travel(df)
 df = metrics.add_body_clock(df)
+injuries = dataloader.load_injuries(YEARS)
+df = metrics.add_injuries(df, injuries)
 
 # ============================================================
 # VALIDATION (2020-22) — all tuning happens here, nothing below
@@ -116,6 +118,13 @@ for body_clock_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3, 4]:
     bc = elo_model.run(df, K=2, travel_coef=0, body_clock_coef=body_clock_coef, eval_from=2020, eval_to=2022)
     print(f"body_clock_coef={body_clock_coef}: MAE {bc['mae']:.4f}  Brier {bc['brier']:.4f}")
 
+print("\nINJURY VALIDATION (2020-22) — pick injury_coef here, K=2")
+print("MVP: position-weighted count of 'Out' players (QB excluded, already covered")
+print("by qb_boost). Raw check: corr(sev_diff, result)=+0.087, mostly monotonic buckets.")
+for injury_coef in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0]:
+    ic = elo_model.run(df, K=2, injury_coef=injury_coef, eval_from=2020, eval_to=2022)
+    print(f"injury_coef={injury_coef}: MAE {ic['mae']:.4f}  Brier {ic['brier']:.4f}")
+
 print("\nTOTALS SCALE VALIDATION (2020-22) — pick scale here, K=0.6")
 for scale in [15, 20, 25, 30, 35]:
     s = elo_model.run_totals(df, K=0.6, scale=scale, eval_from=2020, eval_to=2022)
@@ -181,6 +190,10 @@ print("(baseline w/o fix was MAE 10.2414, Brier 0.2247 — rest fix is a wash, n
 
 test_travel = elo_model.run(df, K=2, travel_coef=-0.4, eval_from=2023, eval_to=2025)
 print(f"\nTEST w/ travel fix (2023-25, untouched): MAE {test_travel['mae']:.4f}  vs Vegas {test_travel['vegas_mae']:.4f}  Brier {test_travel['brier']:.4f}")
+print("(baseline w/o fix was MAE 10.2414, Brier 0.2247)")
+
+test_injury = elo_model.run(df, K=2, injury_coef=0.2, eval_from=2023, eval_to=2025)
+print(f"\nTEST w/ injury fix (2023-25, untouched): MAE {test_injury['mae']:.4f}  vs Vegas {test_injury['vegas_mae']:.4f}  Brier {test_injury['brier']:.4f}")
 print("(baseline w/o fix was MAE 10.2414, Brier 0.2247)")
 
 test_qb = elo_model.run(df, K=2, qb_boost=5, eval_from=2023, eval_to=2025)
