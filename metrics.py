@@ -1,4 +1,5 @@
 from math import radians, sin, cos, asin, sqrt
+import pandas as pd
 
 # Stadium coordinates (lat, lon) for every team abbreviation seen in the
 # 2018-2025 data. LV/OAK are the same franchise (relocated 2020) — kept as
@@ -111,6 +112,62 @@ def add_injuries(df, injuries):
     df = df.rename(columns={'severity': 'away_severity'}).drop(columns=['team'])
     df['home_severity'] = df['home_severity'].fillna(0)
     df['away_severity'] = df['away_severity'].fillna(0)
+    return df
+
+
+def add_injuries_starters(df, injuries, snap_counts, ids):
+    """Refined injury severity, restricted to players who were recently STARTING
+    (trailing snap share > 0.5) before going Out — filters out the noise of
+    backup 'Out' designations that the simpler add_injuries() MVP counts equally.
+
+    Two real data-linking gotchas solved here (see PROGRESS.md Session 32):
+    - snap_counts uses pfr_player_id, injuries uses gsis_id — different ID
+      systems, linked via nfl.import_ids()'s crosswalk (only ~81% coverage,
+      an accepted imprecision like several other features in this project).
+    - An 'Out' player has NO snap-count row for that week (they didn't play),
+      so matching on the same week is impossible by construction. Needs
+      merge_asof to find each player's most recent PRIOR game instead.
+    - Both dtype traps: pandas 3.0's nullable 'string' dtype vs plain 'object'
+      breaks merge_asof outright (raises) and silently returns near-zero
+      matches with a plain .merge() — .astype(object) on both sides required.
+    """
+    crosswalk = ids[['pfr_id', 'gsis_id']].dropna()
+    crosswalk = crosswalk[crosswalk['gsis_id'].str.match(r'^\d{2}-\d{7}$')]
+    crosswalk = crosswalk.drop_duplicates('pfr_id')
+    crosswalk['gsis_id'] = crosswalk['gsis_id'].astype(object)
+
+    snaps = snap_counts.merge(crosswalk, left_on='pfr_player_id', right_on='pfr_id', how='left')
+    snaps = snaps.dropna(subset=['gsis_id']).copy()
+    snaps['gsis_id'] = snaps['gsis_id'].astype(object)
+    snaps['snap_pct'] = snaps[['offense_pct', 'defense_pct']].max(axis=1)
+    snaps = snaps.sort_values(['gsis_id', 'season', 'week'])
+    snaps['recent_pct'] = snaps.groupby('gsis_id')['snap_pct'].transform(
+        lambda s: s.rolling(3, min_periods=1).mean())
+
+    out = injuries[(injuries['report_status'] == 'Out') & (injuries['position'] != 'QB')].copy()
+    out = out.dropna(subset=['gsis_id']).copy()
+    out['gsis_id'] = out['gsis_id'].astype(object)
+    out['week'] = out['week'].astype('int64')
+    snaps['week'] = snaps['week'].astype('int64')
+    out_sorted = out.sort_values('week')
+    snaps_sorted = snaps[['gsis_id', 'week', 'recent_pct']].sort_values('week')
+
+    matched = pd.merge_asof(out_sorted, snaps_sorted, by='gsis_id', left_on='week', right_on='week',
+                             direction='backward', allow_exact_matches=False)
+    starters_out = matched[matched['recent_pct'] > 0.5].copy()
+    starters_out['weight'] = starters_out['position'].map(POSITION_WEIGHT).fillna(0)
+
+    severity = starters_out.groupby(['season', 'week', 'team'])['weight'].sum().reset_index()
+    severity = severity.rename(columns={'weight': 'severity_v2'})
+
+    df = df.merge(severity, left_on=['season', 'week', 'home_team'],
+                  right_on=['season', 'week', 'team'], how='left')
+    df = df.rename(columns={'severity_v2': 'home_severity_v2'}).drop(columns=['team'])
+    df = df.merge(severity, left_on=['season', 'week', 'away_team'],
+                  right_on=['season', 'week', 'team'], how='left')
+    df = df.rename(columns={'severity_v2': 'away_severity_v2'}).drop(columns=['team'])
+    df['home_severity_v2'] = df['home_severity_v2'].fillna(0)
+    df['away_severity_v2'] = df['away_severity_v2'].fillna(0)
     return df
 
 

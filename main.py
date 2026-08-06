@@ -14,6 +14,9 @@ df = metrics.add_travel(df)
 df = metrics.add_body_clock(df)
 injuries = dataloader.load_injuries(YEARS)
 df = metrics.add_injuries(df, injuries)
+snap_counts = dataloader.load_snap_counts(YEARS)
+ids = dataloader.load_ids()
+df = metrics.add_injuries_starters(df, injuries, snap_counts, ids)
 
 # ============================================================
 # VALIDATION (2020-22) — all tuning happens here, nothing below
@@ -124,6 +127,18 @@ print("by qb_boost). Raw check: corr(sev_diff, result)=+0.087, mostly monotonic 
 for injury_coef in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0]:
     ic = elo_model.run(df, K=2, injury_coef=injury_coef, eval_from=2020, eval_to=2022)
     print(f"injury_coef={injury_coef}: MAE {ic['mae']:.4f}  Brier {ic['brier']:.4f}")
+
+print("\nINJURY V2 VALIDATION, ISOLATED (2020-22) — injury_coef=0, only injury_coef_v2 active")
+print("v2 = starter-only severity (trailing snap share >0.5). Raw corr weaker than MVP")
+print("(+0.057 vs +0.087) — checking whether precision still wins in the actual model.")
+for injury_coef_v2 in [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0]:
+    icv2 = elo_model.run(df, K=2, injury_coef=0, injury_coef_v2=injury_coef_v2, eval_from=2020, eval_to=2022)
+    print(f"injury_coef_v2={injury_coef_v2}: MAE {icv2['mae']:.4f}  Brier {icv2['brier']:.4f}")
+
+print("\nINJURY V2 VALIDATION, STACKED (2020-22) — injury_coef=0.2 (locked MVP) + injury_coef_v2")
+for injury_coef_v2 in [0, 0.1, 0.2, 0.3, 0.4, 0.5]:
+    icv2 = elo_model.run(df, K=2, injury_coef=0.2, injury_coef_v2=injury_coef_v2, eval_from=2020, eval_to=2022)
+    print(f"injury_coef_v2={injury_coef_v2}: MAE {icv2['mae']:.4f}  Brier {icv2['brier']:.4f}")
 
 print("\nTOTALS SCALE VALIDATION (2020-22) — pick scale here, K=0.6")
 for scale in [15, 20, 25, 30, 35]:

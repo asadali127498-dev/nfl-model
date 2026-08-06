@@ -13,3 +13,9 @@ def load_pbp(years):
 def load_injuries(years):
     return nfl.import_injuries(years)
 
+def load_snap_counts(years):
+    return nfl.import_snap_counts(years)
+
+def load_ids():
+    return nfl.import_ids()
+
