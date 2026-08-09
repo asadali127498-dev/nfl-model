@@ -8,6 +8,7 @@ YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
 df = dataloader.load_schedules(YEARS)
 pbp = dataloader.load_pbp(YEARS)
 df = metrics.add_epa_margin(df, pbp)
+df = metrics.add_adjusted_epa_margin(df)
 df = metrics.add_weather(df, pbp)
 df = metrics.add_qb_epa(df, pbp)
 df = metrics.add_travel(df)
@@ -27,6 +28,19 @@ df = metrics.add_injuries_starters(df, injuries, snap_counts, ids)
 print("VALIDATION (2020-22) — pick K here")
 for K in [1, 1.5, 2, 3, 4]:
     v = elo_model.run(df, K=K, eval_from=2020, eval_to=2022)
+    print(f"K={K}: MAE {v['mae']:.4f}  Brier {v['brier']:.4f}")
+
+print("\nBLEND VALIDATION (2020-22) — pick w here, K=2, using OPPONENT-ADJUSTED epa_margin")
+print("Session 13 found blending raw epa_margin with result NEVER helped (corr=0.996,")
+print("no diversification benefit). Opponent-adjusting EPA breaks that down to corr~0.89 —")
+print("re-tested the same blend hypothesis with a genuinely different signal (Session 34).")
+for w in [0, 0.25, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]:
+    r = elo_model.run(df, K=2, w=w, eval_from=2020, eval_to=2022)
+    print(f"w={w}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nK RE-CHECK under w=0.8 (2020-22) — confirms K=2 still holds with the new blend active")
+for K in [1, 1.5, 2, 2.5, 3, 3.5, 4]:
+    v = elo_model.run(df, K=K, w=0.8, eval_from=2020, eval_to=2022)
     print(f"K={K}: MAE {v['mae']:.4f}  Brier {v['brier']:.4f}")
 
 print("\nTOTALS VALIDATION (2020-22) — pick K here")
@@ -102,23 +116,18 @@ for qb_retention in [1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.5, 3.0]:
     print(f"qb_retention={qb_retention}: MAE {qret['mae']:.4f}  Brier {qret['brier']:.4f}")
 
 print("\nTRAVEL VALIDATION (2020-22) — pick travel_coef here, K=2")
-print("WEAK PRIOR going in: corr(away_travel, result)=-0.04, bucket pattern non-monotonic,")
-print("longest-distance bucket even reverses direction. Testing anyway for a clean record.")
+print("SHELVED Session 33: this sweep's OWN honest test looked like a pass, but was")
+print("compared against a stale baseline — properly re-checked against the QB-rating")
+print("baseline it was actually stacked on, travel_coef made TEST MAE worse. Reverted.")
 for travel_coef in [-1.0, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0]:
     tr = elo_model.run(df, K=2, travel_coef=travel_coef, eval_from=2020, eval_to=2022)
     print(f"travel_coef={travel_coef}: MAE {tr['mae']:.4f}  Brier {tr['brier']:.4f}")
 
-print("\nBODY CLOCK VALIDATION (2020-22) — pick body_clock_coef here, K=2, travel_coef=-0.4")
-print("Session-30 follow-up: raw check showed west_to_east_early games average")
-print("home margin ~-0.03 vs ~+1.96 elsewhere — a ~2pt gap, much cleaner than raw distance.")
+print("\nBODY CLOCK VALIDATION (2020-22) — pick body_clock_coef here, K=2, travel_coef=0 (default)")
+print("Re-checked Session 34 now that travel_coef is gone — Session 30 shelved this as")
+print("redundant with travel_coef, which no longer applies now that travel is removed.")
 for body_clock_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3, 4]:
     bc = elo_model.run(df, K=2, body_clock_coef=body_clock_coef, eval_from=2020, eval_to=2022)
-    print(f"body_clock_coef={body_clock_coef}: MAE {bc['mae']:.4f}  Brier {bc['brier']:.4f}")
-
-print("\nBODY CLOCK VALIDATION, ISOLATED (2020-22) — same sweep but travel_coef=0")
-print("to check whether travel_coef was already absorbing this signal")
-for body_clock_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3, 4]:
-    bc = elo_model.run(df, K=2, travel_coef=0, body_clock_coef=body_clock_coef, eval_from=2020, eval_to=2022)
     print(f"body_clock_coef={body_clock_coef}: MAE {bc['mae']:.4f}  Brier {bc['brier']:.4f}")
 
 print("\nINJURY VALIDATION (2020-22) — pick injury_coef here, K=2")
@@ -188,7 +197,11 @@ for b in range(10):
         print(f"  bucket {b}: {wins[b]:>3}/{counts[b]:>3} = {wins[b]/counts[b]:.2f}")
 
 test = elo_model.run(df, K=2, eval_from=2023, eval_to=2025)
-print(f"\nTEST (2023-25, untouched): MAE {test['mae']:.4f}  vs Vegas {test['vegas_mae']:.4f}  Brier {test['brier']:.4f}")
+print(f"\nTEST (2023-25, untouched, w=0.8 shipped default): MAE {test['mae']:.4f}  vs Vegas {test['vegas_mae']:.4f}  Brier {test['brier']:.4f}")
+
+test_pure_scoreboard = elo_model.run(df, K=2, w=1.0, eval_from=2023, eval_to=2025)
+print(f"(for comparison, w=1.0 pure scoreboard: MAE {test_pure_scoreboard['mae']:.4f}  Brier {test_pure_scoreboard['brier']:.4f} — "
+      f"the adjusted-EPA blend is a real, validated gain of {test_pure_scoreboard['mae']-test['mae']:.4f} MAE)")
 
 early = [g for g in test['games'] if g['week'] <= 4]
 late = [g for g in test['games'] if g['week'] >= 5]
@@ -210,6 +223,14 @@ print("(baseline w/o fix was MAE 10.2414, Brier 0.2247)")
 test_injury = elo_model.run(df, K=2, injury_coef=0.2, eval_from=2023, eval_to=2025)
 print(f"\nTEST w/ injury fix (2023-25, untouched): MAE {test_injury['mae']:.4f}  vs Vegas {test_injury['vegas_mae']:.4f}  Brier {test_injury['brier']:.4f}")
 print("(baseline w/o fix was MAE 10.2414, Brier 0.2247)")
+
+# IMPORTANT: compare against the CURRENT shipped stack (`test` above, MAE 10.1919),
+# not the old stale 10.2414 reference — that exact mistake is what caused the
+# travel_coef bug in Session 33. Always compare against the immediately-correct baseline.
+test_bodyclock = elo_model.run(df, K=2, body_clock_coef=1.5, eval_from=2023, eval_to=2025)
+print(f"\nTEST w/ body_clock fix (2023-25, untouched, SHELVED — wash, not shipped): "
+      f"MAE {test_bodyclock['mae']:.4f}  vs Vegas {test_bodyclock['vegas_mae']:.4f}  Brier {test_bodyclock['brier']:.4f}")
+print(f"(CORRECT current baseline w/o fix: MAE {test['mae']:.4f}, Brier {test['brier']:.4f})")
 
 test_qb = elo_model.run(df, K=2, qb_boost=5, eval_from=2023, eval_to=2025)
 print(f"\nTEST w/ QB rating (2023-25, untouched, qb_k=0.15/qb_retention=1.0 — shipped defaults): "

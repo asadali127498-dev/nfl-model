@@ -78,12 +78,16 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
     return {'mae': mae, 'vegas_mae': vegas_mae, 'games': games,
             'off_elo': off_elo, 'def_elo': def_elo, 'n': len(pred)}
 
-def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef=0.0,
+def run(df, K=2, w=0.8, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef=0.0,
         qb_k=0.15, qb_boost=5.0, qb_retention=1.0, travel_coef=0.0, body_clock_coef=0.0,
         injury_coef=0.2, injury_coef_v2=0.0, eval_from=2020, eval_to=2024):
     """Walk-forward Elo over the date order.
 
-    Ratings train on a blend of the two signals: w * result + (1 - w) * epa_margin,
+    Ratings train on a blend of the two signals: w * result + (1 - w) * adj_epa_margin
+    (opponent-adjusted EPA — see metrics.add_adjusted_epa_margin; this REPLACED raw
+    epa_margin in Session 34, since raw epa_margin was 0.996-correlated with result
+    and never beat pure scoreboard in any blend, Session 13 — the adjustment breaks
+    that correlation down to ~0.89 and a real interior blend optimum appears),
     capped at +/-cap to balance blowout games. w=1 is pure scoreboard, w=0 is pure EPA.
     Predictions are graded out-of-sample from season 2022-2024, always
     against the real scoreboard (`result`). Returns a dict of metrics.
@@ -135,7 +139,7 @@ def run(df, K=2, w=1.0, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
             elo[home] = 1500 + qb_regression * (elo[home] - 1500)
         if away_qb_changed:
             elo[away] = 1500 + qb_regression * (elo[away] - 1500)
-        blended = w * row['result'] + (1 - w) * row['epa_margin']
+        blended = w * row['result'] + (1 - w) * row['adj_epa_margin']
         actual = max(min(blended, cap), -cap)
         rest_diff = row['home_rest'] - row['away_rest']
         home_qb_rating = qb_rating.get(home_qb, qb_baseline)

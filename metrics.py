@@ -71,6 +71,44 @@ def add_epa_margin(df, pbp):
     return df
 
 
+def add_adjusted_epa_margin(df):
+    """Opponent-adjusted EPA margin — corrects each team's game EPA for how
+    good/bad the opponent's defense typically is (trailing, no lookahead),
+    unlike raw epa_margin which treats a big game against a bad defense the
+    same as a big game against a good one.
+
+    def_strength[team] = trailing avg EPA ALLOWED by that team's defense.
+    A team is adjusted UP if their opponent's defense was tougher than
+    average, DOWN if it was weaker than average. Requires `home_epa`/
+    `away_epa` (from add_epa_margin) to already be present.
+
+    Falls back to raw epa_margin for early-season games with no trailing
+    defensive history yet (season openers, first ~2 games of a team's year).
+    """
+    home_allowed = df[['season', 'week', 'home_team', 'away_epa']].rename(
+        columns={'home_team': 'team', 'away_epa': 'epa_allowed'})
+    away_allowed = df[['season', 'week', 'away_team', 'home_epa']].rename(
+        columns={'away_team': 'team', 'home_epa': 'epa_allowed'})
+    allowed = pd.concat([home_allowed, away_allowed]).sort_values(['team', 'season', 'week'])
+    allowed['def_strength'] = allowed.groupby('team')['epa_allowed'].transform(
+        lambda s: s.shift(1).rolling(8, min_periods=3).mean())
+    league_avg = df['home_epa'].mean()
+
+    df = df.merge(allowed[['team', 'season', 'week', 'def_strength']].rename(
+        columns={'team': 'home_team', 'def_strength': 'home_def_strength'}),
+        on=['season', 'week', 'home_team'], how='left')
+    df = df.merge(allowed[['team', 'season', 'week', 'def_strength']].rename(
+        columns={'team': 'away_team', 'def_strength': 'away_def_strength'}),
+        on=['season', 'week', 'away_team'], how='left')
+
+    df['adj_home_epa'] = df['home_epa'] - df['away_def_strength'] + league_avg
+    df['adj_away_epa'] = df['away_epa'] - df['home_def_strength'] + league_avg
+    df['adj_epa_margin'] = df['adj_home_epa'] - df['adj_away_epa']
+    df['adj_epa_margin'] = df['adj_epa_margin'].fillna(df['epa_margin'])
+    df = df.drop(columns=['adj_home_epa', 'adj_away_epa', 'home_def_strength', 'away_def_strength'])
+    return df
+
+
 def add_qb_epa(df, pbp):
     dropbacks = pbp[pbp['qb_dropback'] == 1]
     qb_epa = dropbacks.groupby(['game_id', 'passer_id'])['epa'].mean().reset_index()
