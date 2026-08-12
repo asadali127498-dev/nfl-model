@@ -2,7 +2,8 @@ from statistics import NormalDist
 import pandas as pd
 
 def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
-               rain_snow_coef=8, clear_weather_coef=0, div_coef=1.5, eval_from=2020, eval_to=2022):
+               rain_snow_coef=8, clear_weather_coef=0, div_coef=1.5,
+               turf_coef=0, extreme_cold_coef=2, eval_from=2020, eval_to=2022):
     """Walk-forward offense/defense Elo, predicting game TOTAL (home+away score).
 
     Each team has two ratings: off_elo (scoring ability) and def_elo (points
@@ -53,6 +54,12 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
         if row['div_game']:
             expected_total -= div_coef
 
+        if row['is_turf']:
+            expected_total += turf_coef
+
+        if row['extreme_cold']:
+            expected_total -= extreme_cold_coef
+
         if eval_from <= row['season'] <= eval_to:
             pred.append(expected_total)
             act.append(row['total'])
@@ -80,7 +87,10 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
 
 def run(df, K=2, w=0.8, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef=0.0,
         qb_k=0.15, qb_boost=5.0, qb_retention=1.0, travel_coef=0.0, body_clock_coef=0.0,
-        injury_coef=0.2, injury_coef_v2=0.0, eval_from=2020, eval_to=2024):
+        injury_coef=0.2, injury_coef_v2=0.0, turnover_coef=0.0, primetime_coef=0.0,
+        oline_k=0.1, oline_boost=0.0, altitude_coef=0.0,
+        home_bias_k=0.05, home_bias_coef=0.0, cpoe_k=0.15, cpoe_boost=0.0,
+        success_coef=0.0, eval_from=2020, eval_to=2024):
     """Walk-forward Elo over the date order.
 
     Ratings train on a blend of the two signals: w * result + (1 - w) * adj_epa_margin
@@ -118,6 +128,11 @@ def run(df, K=2, w=0.8, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
     elo = {t: 1500 for t in df['home_team'].unique()}
     qb_rating = {}
     qb_baseline = pd.concat([df['home_qb_epa'], df['away_qb_epa']]).mean()
+    oline_rating = {}
+    oline_baseline = pd.concat([df['home_sack_rate'], df['away_sack_rate']]).mean()
+    home_bias = {t: 0 for t in df['home_team'].unique()}
+    cpoe_rating = {}
+    cpoe_baseline = pd.concat([df['home_cpoe'], df['away_cpoe']]).mean()
     current_season = None
     pred, act, veg, winprobs, homewins, games = [], [], [], [], [], []
 
@@ -140,16 +155,27 @@ def run(df, K=2, w=0.8, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
         if away_qb_changed:
             elo[away] = 1500 + qb_regression * (elo[away] - 1500)
         blended = w * row['result'] + (1 - w) * row['adj_epa_margin']
+        blended -= turnover_coef * row['turnover_margin']
+        blended += success_coef * row['success_diff']
         actual = max(min(blended, cap), -cap)
         rest_diff = row['home_rest'] - row['away_rest']
         home_qb_rating = qb_rating.get(home_qb, qb_baseline)
         away_qb_rating = qb_rating.get(away_qb, qb_baseline)
-        expected = max(min((elo[home] - elo[away]) / 25 + hfa + rest_coef * rest_diff
-                            + qb_boost * (home_qb_rating - away_qb_rating)
-                            + travel_coef * (row['away_travel'] / 1000)
-                            - body_clock_coef * row['west_to_east_early']
-                            + injury_coef * (row['away_severity'] - row['home_severity'])
-                            + injury_coef_v2 * (row['away_severity_v2'] - row['home_severity_v2']), 20), -20)
+        home_oline = oline_rating.get(home, oline_baseline)
+        away_oline = oline_rating.get(away, oline_baseline)
+        home_cpoe_rating = cpoe_rating.get(home_qb, cpoe_baseline)
+        away_cpoe_rating = cpoe_rating.get(away_qb, cpoe_baseline)
+        pre_bias_expected = ((elo[home] - elo[away]) / 25 + hfa + rest_coef * rest_diff
+                              + qb_boost * (home_qb_rating - away_qb_rating)
+                              + travel_coef * (row['away_travel'] / 1000)
+                              - body_clock_coef * row['west_to_east_early']
+                              + injury_coef * (row['away_severity'] - row['home_severity'])
+                              + injury_coef_v2 * (row['away_severity_v2'] - row['home_severity_v2'])
+                              - primetime_coef * row['primetime']
+                              + oline_boost * (away_oline - home_oline)
+                              + altitude_coef * (home == 'DEN')
+                              + cpoe_boost * (home_cpoe_rating - away_cpoe_rating))
+        expected = max(min(pre_bias_expected + home_bias_coef * home_bias.get(home, 0), 20), -20)
         win_prob = NormalDist().cdf(expected / sigma)
 
         if eval_from <= row['season'] <= eval_to:
@@ -166,6 +192,16 @@ def run(df, K=2, w=0.8, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
             qb_rating[home_qb] = home_qb_rating + qb_k * (row['home_qb_epa'] - home_qb_rating)
         if pd.notna(row['away_qb_epa']):
             qb_rating[away_qb] = away_qb_rating + qb_k * (row['away_qb_epa'] - away_qb_rating)
+        if pd.notna(row['home_sack_rate']):
+            oline_rating[home] = home_oline + oline_k * (row['home_sack_rate'] - home_oline)
+        if pd.notna(row['away_sack_rate']):
+            oline_rating[away] = away_oline + oline_k * (row['away_sack_rate'] - away_oline)
+        home_bias[home] = home_bias.get(home, 0) + home_bias_k * (
+            (actual - pre_bias_expected) - home_bias.get(home, 0))
+        if pd.notna(row['home_cpoe']):
+            cpoe_rating[home_qb] = home_cpoe_rating + cpoe_k * (row['home_cpoe'] - home_cpoe_rating)
+        if pd.notna(row['away_cpoe']):
+            cpoe_rating[away_qb] = away_cpoe_rating + cpoe_k * (row['away_cpoe'] - away_cpoe_rating)
 
         elo[home] += K * (actual - expected)
         elo[away] -= K * (actual - expected)
@@ -178,7 +214,8 @@ def run(df, K=2, w=0.8, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
     brier = sum((p - hw) ** 2 for p, hw in zip(winprobs, homewins)) / len(winprobs)
 
     return {'mae': mae, 'vegas_mae': vegas_mae, 'brier': brier,
-            'elo': elo, 'qb_rating': qb_rating, 'winprobs': winprobs, 'homewins': homewins,
+            'elo': elo, 'qb_rating': qb_rating, 'oline_rating': oline_rating,
+            'winprobs': winprobs, 'homewins': homewins,
             'games': games, 'n': len(pred)}
 
 

@@ -55,6 +55,81 @@ def add_body_clock(df):
     return df
 
 
+def add_primetime(df):
+    """Games kicking off at/after 7pm ET (SNF/MNF/TNF-type windows). Real
+    confound risk: national TV disproportionately picks marquee matchups
+    between good teams, so any effect here could be team-quality selection,
+    not a genuine primetime performance difference. Untested causally, only
+    empirically — see Session 36.
+    """
+    df = df.copy()
+    df['primetime'] = df['gametime'].str.split(':').str[0].astype(int) >= 19
+    return df
+
+
+def add_turnover_margin(df, pbp):
+    """Net turnover margin (home takeaways - home giveaways) per game. Used
+    to discount the TRAINING signal, not the prediction — turnover margin
+    strongly explains THIS game's result (corr 0.54) but barely predicts a
+    team's own future turnover margin (corr 0.08, essentially random) —
+    the classic signature of luck, not skill. See Session 36.
+    """
+    giveaway = ((pbp['interception'] == 1) | (pbp['fumble_lost'] == 1)).astype(int)
+    tov = pbp.assign(giveaway=giveaway).groupby(['game_id', 'posteam'])['giveaway'].sum().reset_index()
+
+    df = df.merge(tov, left_on=['game_id', 'home_team'], right_on=['game_id', 'posteam'], how='left')
+    df = df.rename(columns={'giveaway': 'home_giveaways'}).drop(columns=['posteam'])
+    df = df.merge(tov, left_on=['game_id', 'away_team'], right_on=['game_id', 'posteam'], how='left')
+    df = df.rename(columns={'giveaway': 'away_giveaways'}).drop(columns=['posteam'])
+    df['home_giveaways'] = df['home_giveaways'].fillna(0)
+    df['away_giveaways'] = df['away_giveaways'].fillna(0)
+    df['turnover_margin'] = df['away_giveaways'] - df['home_giveaways']
+    return df
+
+
+def add_sack_rate(df, pbp):
+    """Sack rate allowed on dropbacks — an O-line/pass-protection proxy.
+    corr(sack_rate_diff, result)=+0.36 raw, but real redundancy risk: sacks
+    are already negative-EPA plays baked into home_epa/away_epa and qb_epa,
+    so this may double-count the same signal those already capture (same
+    trap as the totals opponent-adjustment). Untested for that yet — see
+    Session 36's honest test for the answer.
+    """
+    dropbacks = pbp[pbp['qb_dropback'] == 1]
+    sack_rate = dropbacks.groupby(['game_id', 'posteam'])['sack'].mean().reset_index().rename(
+        columns={'sack': 'sack_rate'})
+    df = df.merge(sack_rate, left_on=['game_id', 'home_team'], right_on=['game_id', 'posteam'], how='left')
+    df = df.rename(columns={'sack_rate': 'home_sack_rate'}).drop(columns=['posteam'])
+    df = df.merge(sack_rate, left_on=['game_id', 'away_team'], right_on=['game_id', 'posteam'], how='left')
+    df = df.rename(columns={'sack_rate': 'away_sack_rate'}).drop(columns=['posteam'])
+    return df
+
+
+def add_oline_fault_sack_rate(df, pbp, ftn):
+    """Refined O-line signal: sack rate EXCLUDING sacks charted as the QB's
+    own fault (held the ball too long) — only sacks attributable to
+    protection/scheme. FTN charting data only exists from 2022 onward, so
+    this is NaN (gracefully skipped by the update mechanism) for 2018-2021 —
+    the validation window (2020-22) effectively only reflects 2022's signal.
+    Session 39, testing whether this fixes why raw sack rate (add_sack_rate)
+    failed in Session 36 — possibly conflated QB pocket presence with O-line
+    quality.
+    """
+    merged = pbp.merge(ftn, left_on=['game_id', 'play_id'],
+                       right_on=['nflverse_game_id', 'nflverse_play_id'], how='inner')
+    dropbacks = merged[merged['qb_dropback'] == 1]
+    oline_sack = (dropbacks['sack'] == 1) & (dropbacks['is_qb_fault_sack'] == False)
+    rate = dropbacks.assign(oline_sack=oline_sack).groupby(
+        ['game_id', 'posteam'])['oline_sack'].mean().reset_index().rename(
+        columns={'oline_sack': 'oline_sack_rate'})
+
+    df = df.merge(rate, left_on=['game_id', 'home_team'], right_on=['game_id', 'posteam'], how='left')
+    df = df.rename(columns={'oline_sack_rate': 'home_oline_sack_rate'}).drop(columns=['posteam'])
+    df = df.merge(rate, left_on=['game_id', 'away_team'], right_on=['game_id', 'posteam'], how='left')
+    df = df.rename(columns={'oline_sack_rate': 'away_oline_sack_rate'}).drop(columns=['posteam'])
+    return df
+
+
 def add_epa_margin(df, pbp):
     game_epa = pbp.groupby(['game_id', 'posteam'])['epa'].sum().reset_index()
 
@@ -68,6 +143,27 @@ def add_epa_margin(df, pbp):
     df['epa_margin'] = df['home_epa'] - df['away_epa']
 
     df = df.sort_values('gameday')
+    return df
+
+
+def add_success_rate(df, pbp):
+    """Success rate — a play "succeeds" if it gains >=40% of yards-to-go on
+    1st down, >=60% on 2nd, or the full distance on 3rd/4th. Genuinely
+    different information from EPA (corr=0.52, much lower than opponent-
+    adjustment's 0.90) — measures CONSISTENCY, not point value, so an
+    explosive-play offense and a consistent-chain-mover can have very
+    different success rates at the same EPA level. Session 40.
+    """
+    plays = pbp[pbp['down'].notna() & pbp['ydstogo'].notna() & pbp['yards_gained'].notna()].copy()
+    thresh = plays['down'].map({1: 0.4, 2: 0.6, 3: 1.0, 4: 1.0})
+    plays['success'] = (plays['yards_gained'] >= thresh * plays['ydstogo']).astype(int)
+    succ = plays.groupby(['game_id', 'posteam'])['success'].mean().reset_index()
+
+    df = df.merge(succ, left_on=['game_id', 'home_team'], right_on=['game_id', 'posteam'], how='left')
+    df = df.rename(columns={'success': 'home_success'}).drop(columns=['posteam'])
+    df = df.merge(succ, left_on=['game_id', 'away_team'], right_on=['game_id', 'posteam'], how='left')
+    df = df.rename(columns={'success': 'away_success'}).drop(columns=['posteam'])
+    df['success_diff'] = df['home_success'] - df['away_success']
     return df
 
 
@@ -126,6 +222,24 @@ def add_qb_epa(df, pbp):
     return df
 
 
+def add_cpoe(df, ngs_passing):
+    """Completion % above expectation — a Next Gen Stats QB accuracy metric,
+    genuinely distinct from EPA/dropback (isolates throw accuracy specifically,
+    not tangled with pass-rush/scheme effects the way EPA is). Session 38.
+    """
+    ngs = ngs_passing[ngs_passing['week'] > 0][
+        ['season', 'week', 'player_gsis_id', 'completion_percentage_above_expectation']
+    ].rename(columns={'completion_percentage_above_expectation': 'cpoe'})
+
+    df = df.merge(ngs, left_on=['season', 'week', 'home_qb_id'],
+                  right_on=['season', 'week', 'player_gsis_id'], how='left')
+    df = df.rename(columns={'cpoe': 'home_cpoe'}).drop(columns=['player_gsis_id'])
+    df = df.merge(ngs, left_on=['season', 'week', 'away_qb_id'],
+                  right_on=['season', 'week', 'player_gsis_id'], how='left')
+    df = df.rename(columns={'cpoe': 'away_cpoe'}).drop(columns=['player_gsis_id'])
+    return df
+
+
 # Rough position-importance tiers for injury severity, excluding QB (already
 # covered by the separate persistent QB rating — including it here would
 # double-count the same signal, same trap as travel_coef/body_clock_coef).
@@ -136,9 +250,16 @@ POSITION_WEIGHT = {
 }
 
 
-def add_injuries(df, injuries):
-    out = injuries[(injuries['report_status'] == 'Out') & (injuries['position'] != 'QB')].copy()
-    out['weight'] = out['position'].map(POSITION_WEIGHT).fillna(0)
+def add_injuries(df, injuries, doubtful_mult=0.0, questionable_mult=0.0):
+    """doubtful_mult/questionable_mult give partial credit to Doubtful/
+    Questionable statuses on top of the always-full-weight 'Out' — both
+    default to 0 (original MVP behavior: only Out counts) since a
+    Questionable player usually DOES play. See Session 37 for the test.
+    """
+    out = injuries[(injuries['position'] != 'QB') &
+                   (injuries['report_status'].isin(['Out', 'Doubtful', 'Questionable']))].copy()
+    status_mult = {'Out': 1.0, 'Doubtful': doubtful_mult, 'Questionable': questionable_mult}
+    out['weight'] = out['position'].map(POSITION_WEIGHT).fillna(0) * out['report_status'].map(status_mult)
     severity = out.groupby(['season', 'week', 'team'])['weight'].sum().reset_index()
     severity = severity.rename(columns={'weight': 'severity'})
 
@@ -216,4 +337,26 @@ def add_weather(df, pbp):
                           df['weather'].str.contains('snow', case=False, na=False))
     df['clear_weather'] = (df['weather'].str.contains('sunny', case=False, na=False) |
                             df['weather'].str.contains('clear', case=False, na=False))
+    return df
+
+
+def add_surface(df):
+    """Turf vs grass. Raw check: turf averages 47.2 total pts vs grass 44.7
+    (~2.5pt gap) — real, physically plausible (turf is a faster surface).
+    Session 40.
+    """
+    df = df.copy()
+    df['surface_clean'] = df['surface'].str.strip().str.lower()
+    df['is_turf'] = ~df['surface_clean'].isin(['grass'])
+    return df
+
+
+def add_extreme_cold(df):
+    """Outdoor games below 32F, no precipitation required — a different
+    mechanism than bad_weather (ball grip/kicking distance in the cold,
+    not precip). Raw check: 42.9 vs 45.0 avg total (~2.1pt gap, n=63 —
+    small sample, treat cautiously). Session 40.
+    """
+    df = df.copy()
+    df['extreme_cold'] = (df['roof'].isin(['outdoors', 'open'])) & (df['temp'] < 32)
     return df

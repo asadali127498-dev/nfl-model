@@ -9,15 +9,25 @@ df = dataloader.load_schedules(YEARS)
 pbp = dataloader.load_pbp(YEARS)
 df = metrics.add_epa_margin(df, pbp)
 df = metrics.add_adjusted_epa_margin(df)
+df = metrics.add_turnover_margin(df, pbp)
+df = metrics.add_sack_rate(df, pbp)
+df = metrics.add_success_rate(df, pbp)
 df = metrics.add_weather(df, pbp)
+df = metrics.add_surface(df)
+df = metrics.add_extreme_cold(df)
 df = metrics.add_qb_epa(df, pbp)
+ngs_passing = dataloader.load_ngs_passing(YEARS)
+df = metrics.add_cpoe(df, ngs_passing)
 df = metrics.add_travel(df)
 df = metrics.add_body_clock(df)
+df = metrics.add_primetime(df)
 injuries = dataloader.load_injuries(YEARS)
 df = metrics.add_injuries(df, injuries)
 snap_counts = dataloader.load_snap_counts(YEARS)
 ids = dataloader.load_ids()
 df = metrics.add_injuries_starters(df, injuries, snap_counts, ids)
+ftn = dataloader.load_ftn([2022, 2023, 2024, 2025])  # FTN charting only exists from 2022 on
+df = metrics.add_oline_fault_sack_rate(df, pbp, ftn)
 
 # ============================================================
 # VALIDATION (2020-22) — all tuning happens here, nothing below
@@ -47,6 +57,21 @@ print("\nTOTALS VALIDATION (2020-22) — pick K here")
 for K in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
     tv = elo_model.run_totals(df, K=K, eval_from=2020, eval_to=2022)
     print(f"K={K}: MAE {tv['mae']:.4f}  vs Vegas {tv['vegas_mae']:.4f}")
+
+print("\nTURF VALIDATION (2020-22) — pick turf_coef here, K=0.6")
+print("SHELVED: raw gap real (turf 47.2 vs grass 44.7 avg total), validation bowl real")
+print("(min ~1), but honest test came back worse (10.4561->10.4720).")
+for turf_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3]:
+    r = elo_model.run_totals(df, K=0.6, turf_coef=turf_coef, eval_from=2020, eval_to=2022)
+    print(f"turf_coef={turf_coef}: MAE {r['mae']:.4f}  vs Vegas {r['vegas_mae']:.4f}")
+
+print("\nEXTREME COLD VALIDATION (2020-22) — pick extreme_cold_coef here, K=0.6")
+print("VALIDATED: outdoor games <32F, no precip required (distinct mechanism from")
+print("bad_weather — ball grip/kicking, not rain/snow). Small raw sample (n=63) but")
+print("honest test held up: 10.4561->10.4505. Locked extreme_cold_coef=2.")
+for extreme_cold_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3]:
+    r = elo_model.run_totals(df, K=0.6, extreme_cold_coef=extreme_cold_coef, eval_from=2020, eval_to=2022)
+    print(f"extreme_cold_coef={extreme_cold_coef}: MAE {r['mae']:.4f}  vs Vegas {r['vegas_mae']:.4f}")
 
 print("\nWIND VALIDATION (2020-22) — pick wind_coef here, K=0.6, threshold=15mph")
 print("judged on the OUTDOOR-only gap, not overall MAE (dome games are unaffected)")
@@ -161,6 +186,93 @@ for rest_coef in [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]:
     r = elo_model.run(df, K=2, rest_coef=rest_coef, eval_from=2020, eval_to=2022)
     print(f"rest_coef={rest_coef}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
 
+print("\nTURNOVER VALIDATION (2020-22) — pick turnover_coef here, K=2")
+print("SHELVED: turnover margin has real luck signature (corr w/ own future TM = 0.08,")
+print("essentially random) but discounting it from training barely moved MAE (0.0006)")
+print("while Brier got WORSE immediately — the existing +/-20 cap + small K=2 already")
+print("limit overreaction to turnover-driven blowouts, nothing left to fix.")
+for turnover_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3, 4]:
+    r = elo_model.run(df, K=2, turnover_coef=turnover_coef, eval_from=2020, eval_to=2022)
+    print(f"turnover_coef={turnover_coef}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nPRIMETIME VALIDATION (2020-22) — pick primetime_coef here, K=2")
+print("SHELVED: raw gap (0.8pt tighter, 0.3pt less home edge) likely scheduling")
+print("selection (TV picks good-team matchups), not a real effect — gain here is 0.002.")
+for primetime_coef in [0, 0.3, 0.5, 0.7, 1.0, 1.3, 1.6, 2.0]:
+    r = elo_model.run(df, K=2, primetime_coef=primetime_coef, eval_from=2020, eval_to=2022)
+    print(f"primetime_coef={primetime_coef}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nOLINE VALIDATION (2020-22) — pick oline_boost here, K=2")
+print("SHELVED: real bowl on validation (min ~45-50), but honest test came back")
+print("worse (10.1743->10.1820) — sacks are already negative-EPA plays baked into")
+print("the adjusted-EPA blend, a separate rating just double-counts the same signal.")
+for oline_boost in [0, 10, 20, 30, 40, 45, 50, 60, 80, 100]:
+    r = elo_model.run(df, K=2, oline_boost=oline_boost, eval_from=2020, eval_to=2022)
+    print(f"oline_boost={oline_boost}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nINJURY WEIGHT CHECK (2020-22) — confirms the shipped 3-tier weighting beats uniform")
+uniform_test = elo_model.run(df, K=2, injury_coef=0.2, eval_from=2020, eval_to=2022)
+orig_weights = dict(metrics.POSITION_WEIGHT)
+for k in metrics.POSITION_WEIGHT:
+    metrics.POSITION_WEIGHT[k] = 1
+df_uniform = metrics.add_injuries(df.drop(columns=['home_severity', 'away_severity']), injuries)
+uniform_r = elo_model.run(df_uniform, K=2, injury_coef=0.2, eval_from=2020, eval_to=2022)
+metrics.POSITION_WEIGHT.update(orig_weights)
+print(f"3-tier weights (shipped): MAE {uniform_test['mae']:.4f}  Brier {uniform_test['brier']:.4f}")
+print(f"uniform weights (all=1): MAE {uniform_r['mae']:.4f}  Brier {uniform_r['brier']:.4f}")
+
+print("\nALTITUDE VALIDATION (2020-22) — pick altitude_coef here, K=2 (Denver-specific)")
+print("SHELVED: raw gap tiny and noisy (DEN home margin 1.91 vs league 1.56, n=67).")
+print("No signal at any tested value — monotonically worse from 0.")
+for altitude_coef in [0, 0.5, 1, 1.5, 2, 2.5, 3]:
+    r = elo_model.run(df, K=2, altitude_coef=altitude_coef, eval_from=2020, eval_to=2022)
+    print(f"altitude_coef={altitude_coef}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nQUESTIONABLE-INJURY WEIGHT VALIDATION (2020-22) — pick questionable_mult here, K=2")
+print("SHELVED: real bowl on validation (min ~0.6, MAE 9.9993 vs 10.0089), but the")
+print("honest test came back worse (10.1743->10.1775). Doubtful never showed any signal.")
+for questionable_mult in [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0]:
+    d = metrics.add_injuries(df.drop(columns=['home_severity', 'away_severity']), injuries,
+                              questionable_mult=questionable_mult)
+    r = elo_model.run(d, K=2, injury_coef=0.2, eval_from=2020, eval_to=2022)
+    print(f"questionable_mult={questionable_mult}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nHOME BIAS VALIDATION (2020-22) — pick home_bias_coef here, K=2")
+print("Shrunk, single-coefficient alternative to a full 32-team home/away split")
+print("(too many free parameters for the signal available, high overfitting risk).")
+print("SHELVED: even this cheap version failed — honest test 10.1743->10.1780, worse.")
+for home_bias_coef in [0, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0]:
+    r = elo_model.run(df, K=2, home_bias_coef=home_bias_coef, eval_from=2020, eval_to=2022)
+    print(f"home_bias_coef={home_bias_coef}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nCPOE VALIDATION (2020-22) — pick cpoe_boost here, K=2, added on top of qb_boost=5")
+print("SHELVED: CPOE (Next Gen Stats accuracy metric) monotonically worse from 0 in BOTH")
+print("configurations — additive on top of the EPA-based QB rating, and as a standalone")
+print("replacement (qb_boost=0). Redundant with what EPA/dropback already captures.")
+for cpoe_boost in [0, 0.2, 0.4, 0.6, 0.8, 1.0]:
+    r = elo_model.run(df, K=2, cpoe_boost=cpoe_boost, eval_from=2020, eval_to=2022)
+    print(f"cpoe_boost={cpoe_boost}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nSUCCESS RATE VALIDATION (2020-22) — pick success_coef here, K=2")
+print("Genuinely different info from EPA (corr=0.52, much lower than opponent-adj's")
+print("0.90 which DID work) — real bowl (min ~25), but honest test came back MIXED:")
+print("MAE worse (10.1743->10.1924) though Brier improved. MAE is the deciding metric.")
+for success_coef in [0, 5, 10, 15, 20, 25, 30, 40]:
+    r = elo_model.run(df, K=2, success_coef=success_coef, eval_from=2020, eval_to=2022)
+    print(f"success_coef={success_coef}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
+print("\nOLINE-FAULT-EXCLUDED VALIDATION (2020-22) — pick oline_boost here, K=2")
+print("CAVEAT: FTN charting only exists from 2022, so this validation window effectively")
+print("reflects only 2022's data — a single season, unusually noisy to tune on.")
+print("SHELVED: real bowl on this thin validation (min ~300), but the honest test failed")
+print("badly (MAE 10.1743->10.6092, MUCH worse) — a textbook overfit to a too-small window.")
+df_oline_test = df.copy()
+df_oline_test['home_sack_rate'] = df_oline_test['home_oline_sack_rate']
+df_oline_test['away_sack_rate'] = df_oline_test['away_oline_sack_rate']
+for oline_boost in [0, 50, 100, 150, 200, 250, 300, 400]:
+    r = elo_model.run(df_oline_test, K=2, oline_boost=oline_boost, eval_from=2020, eval_to=2022)
+    print(f"oline_boost={oline_boost}: MAE {r['mae']:.4f}  Brier {r['brier']:.4f}")
+
 print("\nHFA VALIDATION (2020-22) — pick hfa here, K=2")
 print("judged on Brier + calibration, not just MAE (MAE barely moves across this range)")
 for hfa in [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0]:
@@ -271,3 +383,8 @@ dm = sum(abs(g['pred'] - g['actual']) for g in div_test) / len(div_test)
 dv = sum(abs(g['vegas'] - g['actual']) for g in div_test) / len(div_test)
 print(f"\nTOTALS TEST w/ div fix (2023-25, untouched): MAE {test_totals_div['mae']:.4f}  vs Vegas {test_totals_div['vegas_mae']:.4f}")
 print(f"  divisional-only: Model MAE={dm:.3f}  Vegas MAE={dv:.3f}  gap={dm-dv:.3f}")
+
+test_totals_baseline_no_cold = elo_model.run_totals(df, K=0.6, extreme_cold_coef=0, eval_from=2023, eval_to=2025)
+test_totals_cold = elo_model.run_totals(df, K=0.6, extreme_cold_coef=2, eval_from=2023, eval_to=2025)
+print(f"\nTOTALS TEST w/o extreme-cold fix: MAE {test_totals_baseline_no_cold['mae']:.4f}")
+print(f"TOTALS TEST w/ extreme-cold fix (shipped default): MAE {test_totals_cold['mae']:.4f}")

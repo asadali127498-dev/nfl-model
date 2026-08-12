@@ -19,3 +19,9 @@ def load_snap_counts(years):
 def load_ids():
     return nfl.import_ids()
 
+def load_ngs_passing(years):
+    return nfl.import_ngs_data(stat_type='passing', years=years)
+
+def load_ftn(years):
+    return nfl.import_ftn_data(years=years)
+
