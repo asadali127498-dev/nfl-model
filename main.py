@@ -1,33 +1,13 @@
 import dataloader
 import metrics
 import elo_model
+import pipeline
 
 # warm-up 2018-19, VALIDATION 2020-22, TEST 2023-25 (three held-out seasons)
 YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
 
-df = dataloader.load_schedules(YEARS)
-pbp = dataloader.load_pbp(YEARS)
-df = metrics.add_epa_margin(df, pbp)
-df = metrics.add_adjusted_epa_margin(df)
-df = metrics.add_turnover_margin(df, pbp)
-df = metrics.add_sack_rate(df, pbp)
-df = metrics.add_success_rate(df, pbp)
-df = metrics.add_weather(df, pbp)
-df = metrics.add_surface(df)
-df = metrics.add_extreme_cold(df)
-df = metrics.add_qb_epa(df, pbp)
-ngs_passing = dataloader.load_ngs_passing(YEARS)
-df = metrics.add_cpoe(df, ngs_passing)
-df = metrics.add_travel(df)
-df = metrics.add_body_clock(df)
-df = metrics.add_primetime(df)
-injuries = dataloader.load_injuries(YEARS)
-df = metrics.add_injuries(df, injuries)
-snap_counts = dataloader.load_snap_counts(YEARS)
-ids = dataloader.load_ids()
-df = metrics.add_injuries_starters(df, injuries, snap_counts, ids)
-ftn = dataloader.load_ftn([2022, 2023, 2024, 2025])  # FTN charting only exists from 2022 on
-df = metrics.add_oline_fault_sack_rate(df, pbp, ftn)
+df = pipeline.build_training_data(YEARS)
+injuries = dataloader.load_injuries(YEARS)  # still needed below for the injury-weight-tier check
 
 # ============================================================
 # VALIDATION (2020-22) — all tuning happens here, nothing below

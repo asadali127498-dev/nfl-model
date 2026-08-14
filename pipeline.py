@@ -6,13 +6,57 @@ import re
 import json
 import urllib.request
 import pandas as pd
+import dataloader
+import metrics
 
 
-def get_weather_forecast(lat, lon, contact_email='nfl-model@example.com'):
+def build_training_data(years):
+    """The FULL historical feature pipeline, shared by main.py and
+    predict_week.py so they can never silently drift apart — this is the
+    exact bug that broke the first draft of predict_week.py (Session 41):
+    it predated several shipped features, and elo_model.run() now
+    unconditionally reads columns that draft never built. One source of
+    truth from here on; add new metrics.add_*() calls here ONLY.
+    """
+    df = dataloader.load_schedules(years)
+    pbp = dataloader.load_pbp(years)
+    df = metrics.add_epa_margin(df, pbp)
+    df = metrics.add_adjusted_epa_margin(df)
+    df = metrics.add_turnover_margin(df, pbp)
+    df = metrics.add_sack_rate(df, pbp)
+    df = metrics.add_success_rate(df, pbp)
+    df = metrics.add_weather(df, pbp)
+    df = metrics.add_surface(df)
+    df = metrics.add_extreme_cold(df)
+    df = metrics.add_qb_epa(df, pbp)
+    ngs_passing = dataloader.load_ngs_passing(years)
+    df = metrics.add_cpoe(df, ngs_passing)
+    df = metrics.add_travel(df)
+    df = metrics.add_body_clock(df)
+    df = metrics.add_primetime(df)
+    injuries = dataloader.load_injuries(years)
+    df = metrics.add_injuries(df, injuries)
+    snap_counts = dataloader.load_snap_counts(years)
+    ids = dataloader.load_ids()
+    df = metrics.add_injuries_starters(df, injuries, snap_counts, ids)
+    ftn = dataloader.load_ftn([y for y in years if y >= 2022])  # FTN only exists from 2022
+    df = metrics.add_oline_fault_sack_rate(df, pbp, ftn)
+    return df
+
+
+def get_weather_forecast(lat, lon, game_date, contact_email='nfl-model@example.com'):
     """Pregame weather forecast from the National Weather Service (free, no API
-    key, US locations only — fine, every NFL stadium is in the US). Returns
-    the same shape the model expects: {'bad_weather': bool, 'clear_weather':
-    bool, 'wind': float|None}, using the DAYTIME period nearest to game day.
+    key, US locations only — fine, every NFL stadium is in the US) for the
+    DAYTIME period actually covering `game_date` (a date object or 'YYYY-MM-DD'
+    string) — NOT just whatever period happens to come first in the response.
+    Returns None if no period in the forecast covers that date (NWS only
+    publishes ~7-10 days out; a game a month away has no real forecast yet —
+    an earlier version of this function silently returned TODAY's weather
+    for ANY game date, a real bug caught in Session 41 by checking the raw
+    NWS response instead of trusting the wrapped output).
+
+    Returns the same shape the model expects: {'bad_weather': bool,
+    'clear_weather': bool, 'wind': float|None}.
 
     IMPORTANT CAVEAT, unlike every other feature in this project: this CANNOT
     be honestly backtested. `add_weather()`'s historical bad_weather/
@@ -22,8 +66,12 @@ def get_weather_forecast(lat, lon, contact_email='nfl-model@example.com'):
     and no historical forecast archive exists to validate against. This
     function can only be smoke-tested for correctness, not honestly evaluated
     the way rain_snow_coef/div_coef/etc. were. Treat it as a best-effort
-    stand-in, not a validated feature, when the live pipeline is actually built.
+    stand-in, not a validated feature.
     """
+    import datetime
+    if isinstance(game_date, str):
+        game_date = datetime.date.fromisoformat(game_date)
+
     headers = {'User-Agent': f'nfl-model ({contact_email})'}
     points_req = urllib.request.Request(f'https://api.weather.gov/points/{lat},{lon}', headers=headers)
     with urllib.request.urlopen(points_req, timeout=10) as resp:
@@ -33,7 +81,16 @@ def get_weather_forecast(lat, lon, contact_email='nfl-model@example.com'):
     with urllib.request.urlopen(forecast_req, timeout=10) as resp:
         periods = json.loads(resp.read())['properties']['periods']
 
-    period = periods[0]
+    period = None
+    for p in periods:
+        start = datetime.date.fromisoformat(p['startTime'][:10])
+        end = datetime.date.fromisoformat(p['endTime'][:10])
+        if start <= game_date <= end and p['isDaytime']:
+            period = p
+            break
+    if period is None:
+        return None  # game_date is outside the ~7-10 day forecast range
+
     text = period['shortForecast'].lower()
     bad_weather = ('rain' in text) or ('snow' in text)
     clear_weather = ('sunny' in text) or ('clear' in text)
