@@ -6,20 +6,21 @@ def run_totals(df, K=0.6, hfa=1.25, scale=25, wind_coef=0, wind_threshold=15,
                turf_coef=0, extreme_cold_coef=2, eval_from=2020, eval_to=2022):
     """Walk-forward offense/defense Elo, predicting game TOTAL (home+away score).
 
-    Each team has two ratings: off_elo (scoring ability) and def_elo (points
-    prevented). off_elo updates on the team's own EPA that game; def_elo
-    updates on the opponent's EPA against them. Predictions are graded
-    out-of-sample from `eval_from` through `eval_to`, against the real total
-    and the Vegas total_line.
+    I gave each team two ratings instead of one: off_elo (scoring ability) and
+    def_elo (points prevented). off_elo updates on the team's own EPA that
+    game, def_elo updates on the opponent's EPA against them. I grade
+    predictions out-of-sample from `eval_from` through `eval_to`, always
+    against the real total and the Vegas total_line, never against anything
+    I've already seen.
 
     For outdoor/open-roof games, wind above `wind_threshold` mph subtracts
     `wind_coef` points per mph over the threshold, and rain/snow (parsed from
     the play-by-play 'weather' text) subtracts a flat `rain_snow_coef` points.
-    Both apply to the PREDICTION only, never the off_elo/def_elo rating
-    updates, since weather is a one-game condition, not true team quality.
-    `div_coef` subtracts a flat amount for divisional games, same
-    prediction-only treatment: familiarity is a matchup trait, not a
-    team-quality signal that should feed the ratings.
+    I only let both apply to the PREDICTION, never to the off_elo/def_elo
+    rating updates, since weather is a one-game condition, not true team
+    quality, so it shouldn't change what I think a team actually is.
+    `div_coef` gets the same treatment for divisional games: familiarity is
+    a matchup trait, not a team-quality signal, so it stays prediction-only too.
     """
     off_elo = {t: 1500 for t in df['home_team'].unique()}
     def_elo = {t: 1500 for t in df['home_team'].unique()}
@@ -93,35 +94,39 @@ def run(df, K=2, w=0.8, cap=20, hfa=1.25, sigma=16, qb_regression=1.0, rest_coef
         success_coef=0.0, eval_from=2020, eval_to=2024):
     """Walk-forward Elo over the date order.
 
-    Ratings train on a blend of the two signals: w * result + (1 - w) * adj_epa_margin
-    (opponent-adjusted EPA, see metrics.add_adjusted_epa_margin. This REPLACED raw
-    epa_margin in Session 34, since raw epa_margin was 0.996-correlated with result
-    and never beat pure scoreboard in any blend, Session 13. The adjustment breaks
-    that correlation down to ~0.89, and a real interior blend optimum appears),
-    capped at +/-cap to balance blowout games. w=1 is pure scoreboard, w=0 is pure EPA.
-    Predictions are graded out-of-sample from season 2022-2024, always
-    against the real scoreboard (`result`). Returns a dict of metrics.
+    I train ratings on a blend of two signals: w * result + (1 - w) *
+    adj_epa_margin (opponent-adjusted EPA, see metrics.add_adjusted_epa_margin).
+    I replaced raw epa_margin with the adjusted version in Session 34, because
+    raw epa_margin was 0.996-correlated with result and never beat pure
+    scoreboard in any blend I tried back in Session 13. Adjusting for opponent
+    breaks that correlation down to ~0.89, so a real interior blend optimum
+    finally shows up. I cap the blend at +/-cap so one blowout can't swing a
+    rating too hard. w=1 is pure scoreboard, w=0 is pure EPA. I grade
+    predictions out-of-sample from season 2022-2024, always against the real
+    scoreboard (`result`), and return a dict of metrics.
 
-    qb_rating is a SEPARATE, persistent rating per passer_id (not per team),
-    tracked as an exponential moving average of the QB's own passing EPA/dropback,
-    in EPA units (not Elo points). It carries across team changes since it's keyed
-    by player, not team. `qb_boost` blends the rating gap into the prediction
-    (prediction-only surface, but the QB rating itself updates every game like
-    any other rating). `qb_retention` controls how much of the rating survives
-    each offseason: 1.0 is untouched, less than 1 regresses toward the league-average
-    QB, more than 1 pushes further from average (for QBs who are still improving).
-    Retention only applies to QBs who played in the season that just ended.
-    An inactive or retired QB's rating is left frozen rather than compounded every
-    offseason with nothing (no games) to ever correct it back.
+    qb_rating is a SEPARATE, persistent rating per passer_id, not per team,
+    tracked as an exponential moving average of the QB's own passing
+    EPA/dropback, in EPA units, not Elo points. It carries across team changes
+    since I key it by player, not team. `qb_boost` blends the rating gap into
+    the prediction, prediction-only, but the QB rating itself still updates
+    every game like any other rating. `qb_retention` controls how much of the
+    rating survives each offseason: 1.0 is untouched, less than 1 regresses
+    toward the league-average QB, more than 1 pushes further from average
+    (my hunch there was that still-improving QBs might warrant that). Retention
+    only applies to QBs who actually played in the season that just ended, so
+    an inactive or retired QB's rating stays frozen instead of getting
+    compounded every offseason with nothing (no games) to ever correct it back.
 
-    qb_k=0.05/qb_retention=1.8 were tuned in Session 28 and looked better on
+    I tuned qb_k=0.05/qb_retention=1.8 in Session 28 and it looked better on
     validation, but the combined honest test (2023-25) came back WORSE
-    (MAE 10.2421) than these Session 27 defaults (MAE 10.2107). Reverted
-    intentionally, not carried forward. See PROGRESS.md Session 28.
+    (MAE 10.2421) than these Session 27 defaults (MAE 10.2107), so I reverted
+    it on purpose rather than carrying it forward. See PROGRESS.md Session 28.
 
     `travel_coef` boosts the home team's expected margin based on how far
     (in thousands of miles) the AWAY team traveled from its own stadium.
-    Prediction-only, home team's own rating/travel is always 0 by definition.
+    Prediction-only, since the home team's own rating/travel is always 0 by
+    definition anyway.
     """
     last_qb = {}
     qb_last_season = {}

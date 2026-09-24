@@ -1,24 +1,25 @@
 """Predict an upcoming week's real games using the current, fully-tuned model.
 
-Walks the model through all completed history to get CURRENT end-of-history
-ratings, applies one offseason regression step to project those ratings into
+I walk the model through all completed history to get CURRENT end-of-history
+ratings, apply one offseason regression step to project those ratings into
 the new season (same 25% team-elo regression the model always does at a
 season boundary, done manually here since the walk-forward loop in
-elo_model.run() can't process rows with no score yet), then predicts the
+elo_model.run() can't process rows with no score yet), then predict the
 requested week using only information legitimately available before kickoff.
 
-Uses pipeline.build_training_data() for history, the SAME function main.py
+I use pipeline.build_training_data() for history, the SAME function main.py
 uses, so this can never silently drift out of sync with the shipped model
-again (that exact staleness bug is what broke the first draft of this file
-in Session 41: it predated several features elo_model.run() now requires).
+again. That exact staleness bug is what broke my first draft of this file
+in Session 41: it predated several features elo_model.run() now requires.
 
 Every coefficient below is read from elo_model.run()'s own defaults, not
 hardcoded, so if a currently-shelved feature (rest_coef, travel_coef,
 oline_boost, etc.) ever gets activated, this script picks it up automatically
-without needing a manual update. Two features genuinely can't be computed
-this far from kickoff and degrade gracefully instead of guessing:
+without me having to remember to update it. Two features genuinely can't be
+computed this far from kickoff, so I let them degrade gracefully instead of
+guessing:
   - Weather (rain_snow_coef, extreme_cold_coef): needs a forecast, which the
-    NWS API only provides ~7-10 days out. Beyond that range, assumes neutral
+    NWS API only provides ~7-10 days out. Beyond that range, I assume neutral
     weather (no adjustment), same principle as injury data not existing yet.
   - Confirmed starting QB: uses pipeline.predict_starters()'s validated
     fallback (86.7% -> 88.7% accuracy), not a guess.
@@ -31,7 +32,7 @@ import pipeline
 
 HIST_YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
 
-# Pull the model's own shipped defaults instead of hardcoding them here.
+# I pull the model's own shipped defaults instead of hardcoding them here.
 # If a coefficient changes in elo_model.py, this script updates automatically.
 import inspect
 _MARGIN_DEFAULTS = {k: v.default for k, v in inspect.signature(elo_model.run).parameters.items()}
@@ -42,15 +43,16 @@ def get_current_state(season=None, week=1):
     """Run the model through everything that has actually been played and
     return current ratings.
 
-    Week 1 (nothing played yet this season): walk 2018-2025, then manually
+    Week 1, nothing played yet this season: I walk 2018-2025, then manually
     project one offseason forward (the walk-forward loop can't process rows
-    with no score, so the season-boundary regression it would normally apply
-    is done by hand here).
+    with no score, so I do the season-boundary regression it would normally
+    apply by hand instead).
 
-    Week 2+: include the current season's completed games in the walk, so
-    ratings react to what's happened this year. In that case the walk itself
-    applies the 25% regression at the 2025->2026 boundary, so applying it
-    again here would double-regress. It deliberately does not.
+    Week 2+: I include the current season's completed games in the walk, so
+    ratings actually react to what's happened this year. In that case the
+    walk itself applies the 25% regression at the 2025->2026 boundary, so
+    applying it again here would double-regress. I made sure it deliberately
+    does not.
     """
     include_current = season is not None and week > 1
     years = HIST_YEARS + [season] if include_current else HIST_YEARS
@@ -59,8 +61,8 @@ def get_current_state(season=None, week=1):
     if include_current:
         n_current = int((df['season'] == season).sum())
         if n_current == 0:
-            # Would otherwise silently produce Week-1-style ratings for a
-            # later week, which is exactly the failure this function exists to prevent.
+            # This would otherwise silently produce Week-1-style ratings for
+            # a later week, which is exactly the failure I wrote this function to prevent.
             raise RuntimeError(
                 f"Asked for {season} week {week} but no completed {season} games "
                 f"made it into the training data (play-by-play not published yet?)")
@@ -76,9 +78,9 @@ def get_current_state(season=None, week=1):
         def_elo = dict(totals_result['def_elo'])
     else:
         # team elo/off_elo/def_elo regress 25% toward 1500 at every season
-        # boundary; qb_rating/oline_rating/cpoe_rating all ship with
-        # retention=1.0-equivalent no-op behavior currently, so no regression
-        # step needed for them, they carry forward unchanged
+        # boundary. qb_rating/oline_rating/cpoe_rating all ship with
+        # retention=1.0-equivalent no-op behavior right now, so I don't need
+        # a regression step for them, they just carry forward unchanged
         elo = {t: 1500 + 0.75 * (v - 1500) for t, v in margin_result['elo'].items()}
         off_elo = {t: 1500 + 0.75 * (v - 1500) for t, v in totals_result['off_elo'].items()}
         def_elo = {t: 1500 + 0.75 * (v - 1500) for t, v in totals_result['def_elo'].items()}
@@ -91,8 +93,9 @@ def get_current_state(season=None, week=1):
 
 def get_weather_or_none(home_team, game_date):
     """Best-effort forecast for the actual game date; returns None if out of
-    the ~7-10 day NWS range or the request otherwise fails. Caller must
-    treat None as "unknown, assume neutral," never as "confirmed clear."
+    the ~7-10 day NWS range or the request otherwise fails. Whoever calls
+    this needs to treat None as "unknown, assume neutral," never as
+    "confirmed clear."
     """
     import metrics
     try:
@@ -105,7 +108,7 @@ def get_weather_or_none(home_team, game_date):
 def _try_with_current_season(loader_fn, hist_years, season):
     """Try fetching `hist_years + [season]`; if the current season has no
     data yet (nflverse 404s, since no games played means no file published),
-    fall back to history only rather than crashing the whole prediction."""
+    I fall back to history only rather than crashing the whole prediction."""
     try:
         return loader_fn(hist_years + [season])
     except Exception:
@@ -120,17 +123,18 @@ def predict_games(season, week, state):
 
     schedule = dataloader.load_schedules([season])
     games = schedule[(schedule['season'] == season) & (schedule['week'] == week)]
-    # Never "predict" a game whose result is already known, since that would
-    # be post-hoc and the whole point of this pipeline is pre-registration.
-    # (get_played_games() reports what got excluded so it can be disclosed.)
+    # I never "predict" a game whose result is already known, since that
+    # would be post-hoc and the whole point of this pipeline is
+    # pre-registration. (get_played_games() reports what got excluded so
+    # it can be disclosed instead of quietly dropped.)
     games = games[games['home_score'].isna()]
 
     ids = dataloader.load_ids()
     # snap_counts/injuries only exist for a season once games have actually
     # been played. Early in a new season (e.g. predicting Week 1) nflverse
-    # has no file for it yet and 404s. Fall back to history-only, which is
-    # exactly correct here: with zero current-season games, there's nothing
-    # to override the "last known starter" default anyway.
+    # has no file for it yet and 404s. I fall back to history-only, which
+    # is exactly correct here anyway: with zero current-season games,
+    # there's nothing to override the "last known starter" default.
     snap_counts = _try_with_current_season(dataloader.load_snap_counts, HIST_YEARS, season)
     injuries = _try_with_current_season(dataloader.load_injuries, HIST_YEARS, season)
     full_schedule = dataloader.load_schedules(HIST_YEARS + [season])  # schedules ARE published in advance
@@ -165,9 +169,10 @@ def predict_games(season, week, state):
 
         rest_diff = row['home_rest'] - row['away_rest']
 
-        # margin prediction: mirrors elo_model.run()'s `expected` formula exactly,
-        # using its own current defaults (mostly 0/shelved right now, but picks up
-        # automatically if any of them get activated in a future session)
+        # margin prediction: mirrors elo_model.run()'s `expected` formula
+        # exactly, using its own current defaults (mostly 0/shelved right
+        # now, but this picks it up automatically if I ever activate any
+        # of them in a future session)
         expected_margin = max(min(
             (home_elo - away_elo) / 25 + m['hfa'] + m['rest_coef'] * rest_diff
             + m['qb_boost'] * (home_qb_rating - away_qb_rating)
@@ -215,8 +220,8 @@ def predict_games(season, week, state):
 
 
 def get_played_games(season, week):
-    """Games in this week whose result is already known, excluded from
-    predictions and disclosed in the published file instead."""
+    """Games in this week whose result is already known. I exclude these
+    from predictions and disclose them in the published file instead."""
     schedule = dataloader.load_schedules([season])
     games = schedule[(schedule['season'] == season) & (schedule['week'] == week)]
     return games[games['home_score'].notna()]
@@ -224,10 +229,10 @@ def get_played_games(season, week):
 
 def format_predictions_markdown(season, week, preds, notes=None):
     """Render a week's predictions as a public-facing markdown page. The
-    generation timestamp here is informational only. The REAL proof of
-    timing is the git commit / GitHub push timestamp once this file is
-    committed and pushed to the public repo, which is independent of
-    anything this script claims about itself.
+    generation timestamp here is informational only, I don't rely on it for
+    anything. The REAL proof of timing is the git commit / GitHub push
+    timestamp once this file is committed and pushed to the public repo,
+    which is independent of anything this script claims about itself.
     """
     import datetime
     generated_at = datetime.datetime.now().isoformat(timespec='seconds')
@@ -255,9 +260,10 @@ def format_predictions_markdown(season, week, preds, notes=None):
 
 
 def save_predictions(season, week, preds, out_dir='predictions', notes=None, overwrite=False):
-    """Write the week's markdown file. Refuses to overwrite an existing file
-    by default: once a week's predictions are published, regenerating that
-    file would replace the pre-registered record with a fresh run."""
+    """Write the week's markdown file. I made this refuse to overwrite an
+    existing file by default, because once a week's predictions are
+    published, regenerating that file would replace the pre-registered
+    record with a fresh run, and that's exactly what I don't want."""
     import os
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, f"{season}-week{week:02d}.md")

@@ -1,9 +1,9 @@
 from math import radians, sin, cos, asin, sqrt
 import pandas as pd
 
-# Stadium coordinates (lat, lon) for every team abbreviation seen in the
-# 2018-2025 data. LV/OAK are the same franchise (relocated 2020), kept as
-# separate entries since both abbreviations appear in the historical data.
+# Stadium coordinates (lat, lon) for every team abbreviation I saw in the
+# 2018-2025 data. LV/OAK are the same franchise (relocated 2020), but I kept
+# them as separate entries since both abbreviations show up in the history.
 STADIUM_COORDS = {
     'ARI': (33.5276, -112.2626), 'ATL': (33.7554, -84.4008), 'BAL': (39.2780, -76.6227),
     'BUF': (42.7738, -78.7870), 'CAR': (35.2258, -80.8528), 'CHI': (41.8623, -87.6167),
@@ -34,9 +34,10 @@ def add_travel(df):
     return df
 
 
-# Hours behind Eastern time, by team. Used to flag the "circadian rhythm"
-# case: an away team from a more-western timezone playing an early (<=1pm ET)
-# kickoff, whose body clock is still on morning time relative to the home team.
+# Hours behind Eastern time, by team. I use this to flag the "circadian
+# rhythm" case: an away team from a more-western timezone playing an early
+# (<=1pm ET) kickoff, whose body clock is still on morning time relative to
+# the home team.
 TZ_OFFSET = {
     'BAL': 0, 'BUF': 0, 'CAR': 0, 'CIN': 0, 'CLE': 0, 'DET': 0, 'IND': 0, 'JAX': 0,
     'MIA': 0, 'NE': 0, 'NYG': 0, 'NYJ': 0, 'PHI': 0, 'PIT': 0, 'TB': 0, 'WAS': 0, 'ATL': 0,
@@ -56,11 +57,11 @@ def add_body_clock(df):
 
 
 def add_primetime(df):
-    """Games kicking off at/after 7pm ET (SNF/MNF/TNF-type windows). Real
-    confound risk: national TV disproportionately picks marquee matchups
-    between good teams, so any effect here could be team-quality selection,
-    not a genuine primetime performance difference. Untested causally, only
-    empirically. See Session 36.
+    """Games kicking off at/after 7pm ET (SNF/MNF/TNF-type windows). I'm not
+    fully sold on this one being real: national TV disproportionately picks
+    marquee matchups between good teams, so any effect here could just be
+    team-quality selection, not a genuine primetime performance difference.
+    I've only checked it empirically, not causally. See Session 36.
     """
     df = df.copy()
     df['primetime'] = df['gametime'].str.split(':').str[0].astype(int) >= 19
@@ -68,11 +69,12 @@ def add_primetime(df):
 
 
 def add_turnover_margin(df, pbp):
-    """Net turnover margin (home takeaways - home giveaways) per game. Used
-    to discount the TRAINING signal, not the prediction, since turnover margin
-    strongly explains THIS game's result (corr 0.54) but barely predicts a
-    team's own future turnover margin (corr 0.08, essentially random). That's
-    the classic signature of luck, not skill. See Session 36.
+    """Net turnover margin (home takeaways - home giveaways) per game. I use
+    this to discount the TRAINING signal, not the prediction, because
+    turnover margin strongly explains THIS game's result (corr 0.54) but
+    barely predicts a team's own future turnover margin (corr 0.08,
+    basically random). To me that's the classic signature of luck, not
+    skill. See Session 36.
     """
     giveaway = ((pbp['interception'] == 1) | (pbp['fumble_lost'] == 1)).astype(int)
     tov = pbp.assign(giveaway=giveaway).groupby(['game_id', 'posteam'])['giveaway'].sum().reset_index()
@@ -89,11 +91,12 @@ def add_turnover_margin(df, pbp):
 
 def add_sack_rate(df, pbp):
     """Sack rate allowed on dropbacks, an O-line/pass-protection proxy.
-    corr(sack_rate_diff, result)=+0.36 raw, but real redundancy risk: sacks
-    are already negative-EPA plays baked into home_epa/away_epa and qb_epa,
-    so this may double-count the same signal those already capture (same
-    trap as the totals opponent-adjustment). Untested for that yet, see
-    Session 36's honest test for the answer.
+    corr(sack_rate_diff, result)=+0.36 raw, but I'm worried about redundancy:
+    sacks are already negative-EPA plays baked into home_epa/away_epa and
+    qb_epa, so this might just double-count the same signal those already
+    capture (same trap as the totals opponent-adjustment). I hadn't tested
+    for that yet when I wrote this, see Session 36's honest test for the
+    actual answer.
     """
     dropbacks = pbp[pbp['qb_dropback'] == 1]
     sack_rate = dropbacks.groupby(['game_id', 'posteam'])['sack'].mean().reset_index().rename(
@@ -107,13 +110,14 @@ def add_sack_rate(df, pbp):
 
 def add_oline_fault_sack_rate(df, pbp, ftn):
     """Refined O-line signal: sack rate EXCLUDING sacks charted as the QB's
-    own fault (held the ball too long), only sacks attributable to
-    protection/scheme. FTN charting data only exists from 2022 onward, so
-    this is NaN (gracefully skipped by the update mechanism) for 2018-2021,
-    meaning the validation window (2020-22) effectively only reflects 2022's
-    signal. Session 39, testing whether this fixes why raw sack rate
-    (add_sack_rate) failed in Session 36, possibly conflating QB pocket
-    presence with O-line quality.
+    own fault (held the ball too long), so only sacks attributable to
+    protection/scheme count. FTN charting data only exists from 2022 onward,
+    so this comes back NaN (gracefully skipped by the update mechanism) for
+    2018-2021, which means the validation window (2020-22) effectively only
+    reflects 2022's signal, a real limitation. I built this in Session 39
+    to test whether it fixes why raw sack rate (add_sack_rate) failed in
+    Session 36. My guess going in was that it conflated QB pocket presence
+    with actual O-line quality.
     """
     merged = pbp.merge(ftn, left_on=['game_id', 'play_id'],
                        right_on=['nflverse_game_id', 'nflverse_play_id'], how='inner')
@@ -148,11 +152,11 @@ def add_epa_margin(df, pbp):
 
 def add_success_rate(df, pbp):
     """Success rate: a play "succeeds" if it gains >=40% of yards-to-go on
-    1st down, >=60% on 2nd, or the full distance on 3rd/4th. Genuinely
-    different information from EPA (corr=0.52, much lower than opponent-
-    adjustment's 0.90). It measures CONSISTENCY, not point value, so an
-    explosive-play offense and a consistent-chain-mover can have very
-    different success rates at the same EPA level. Session 40.
+    1st down, >=60% on 2nd, or the full distance on 3rd/4th. I like this
+    because it's genuinely different information from EPA (corr=0.52, much
+    lower than opponent-adjustment's 0.90). It measures CONSISTENCY, not
+    point value, so an explosive-play offense and a consistent-chain-mover
+    can have very different success rates at the same EPA level. Session 40.
     """
     plays = pbp[pbp['down'].notna() & pbp['ydstogo'].notna() & pbp['yards_gained'].notna()].copy()
     thresh = plays['down'].map({1: 0.4, 2: 0.6, 3: 1.0, 4: 1.0})
@@ -168,18 +172,20 @@ def add_success_rate(df, pbp):
 
 
 def add_adjusted_epa_margin(df):
-    """Opponent-adjusted EPA margin. Corrects each team's game EPA for how
-    good/bad the opponent's defense typically is (trailing, no lookahead),
-    unlike raw epa_margin which treats a big game against a bad defense the
-    same as a big game against a good one.
+    """Opponent-adjusted EPA margin. I built this to correct each team's game
+    EPA for how good or bad the opponent's defense typically is (trailing,
+    no lookahead), since raw epa_margin treats a big game against a bad
+    defense the same as a big game against a good one, which never sat
+    right with me.
 
     def_strength[team] = trailing avg EPA ALLOWED by that team's defense.
-    A team is adjusted UP if their opponent's defense was tougher than
-    average, DOWN if it was weaker than average. Requires `home_epa`/
-    `away_epa` (from add_epa_margin) to already be present.
+    A team gets adjusted UP if their opponent's defense was tougher than
+    average, DOWN if it was weaker. Needs `home_epa`/`away_epa` (from
+    add_epa_margin) to already be present.
 
     Falls back to raw epa_margin for early-season games with no trailing
-    defensive history yet (season openers, first ~2 games of a team's year).
+    defensive history yet (season openers, first ~2 games of a team's year),
+    since there's nothing to adjust against.
     """
     home_allowed = df[['season', 'week', 'home_team', 'away_epa']].rename(
         columns={'home_team': 'team', 'away_epa': 'epa_allowed'})
@@ -223,9 +229,10 @@ def add_qb_epa(df, pbp):
 
 
 def add_cpoe(df, ngs_passing):
-    """Completion % above expectation, a Next Gen Stats QB accuracy metric,
-    genuinely distinct from EPA/dropback (isolates throw accuracy specifically,
-    not tangled with pass-rush/scheme effects the way EPA is). Session 38.
+    """Completion % above expectation, a Next Gen Stats QB accuracy metric.
+    I wanted this because it's genuinely distinct from EPA/dropback, since it
+    isolates throw accuracy specifically, without getting tangled up in the
+    pass-rush/scheme effects the way EPA is. Session 38.
     """
     ngs = ngs_passing[ngs_passing['week'] > 0][
         ['season', 'week', 'player_gsis_id', 'completion_percentage_above_expectation']
@@ -240,9 +247,10 @@ def add_cpoe(df, ngs_passing):
     return df
 
 
-# Rough position-importance tiers for injury severity, excluding QB (already
-# covered by the separate persistent QB rating; including it here would
-# double-count the same signal, same trap as travel_coef/body_clock_coef).
+# Rough position-importance tiers for injury severity. I excluded QB on
+# purpose, since it's already covered by the separate persistent QB rating,
+# and including it here would just double-count the same signal, same trap
+# as travel_coef/body_clock_coef.
 POSITION_WEIGHT = {
     'WR': 2, 'T': 2, 'CB': 2, 'DE': 2,
     'TE': 1, 'G': 1, 'C': 1, 'DT': 1, 'LB': 1, 'S': 1,
@@ -252,9 +260,10 @@ POSITION_WEIGHT = {
 
 def add_injuries(df, injuries, doubtful_mult=0.0, questionable_mult=0.0):
     """doubtful_mult/questionable_mult give partial credit to Doubtful/
-    Questionable statuses on top of the always-full-weight 'Out'. Both
-    default to 0 (original MVP behavior: only Out counts) since a
-    Questionable player usually DOES play. See Session 37 for the test.
+    Questionable statuses on top of the always-full-weight 'Out'. I default
+    both to 0 (the original MVP behavior: only Out counts) since a
+    Questionable player usually DOES end up playing. See Session 37 for
+    the test.
     """
     out = injuries[(injuries['position'] != 'QB') &
                    (injuries['report_status'].isin(['Out', 'Doubtful', 'Questionable']))].copy()
@@ -276,19 +285,22 @@ def add_injuries(df, injuries, doubtful_mult=0.0, questionable_mult=0.0):
 
 def add_injuries_starters(df, injuries, snap_counts, ids):
     """Refined injury severity, restricted to players who were recently STARTING
-    (trailing snap share > 0.5) before going Out. Filters out the noise of
-    backup 'Out' designations that the simpler add_injuries() MVP counts equally.
+    (trailing snap share > 0.5) before going Out. I built this to filter out
+    the noise of backup 'Out' designations that the simpler add_injuries()
+    MVP counts equally, which bugged me.
 
-    Two real data-linking gotchas solved here (see PROGRESS.md Session 32):
+    Two real data-linking gotchas I had to solve here (see PROGRESS.md
+    Session 32):
     - snap_counts uses pfr_player_id, injuries uses gsis_id. Different ID
       systems, linked via nfl.import_ids()'s crosswalk (only ~81% coverage,
       an accepted imprecision like several other features in this project).
     - An 'Out' player has NO snap-count row for that week (they didn't play),
-      so matching on the same week is impossible by construction. Needs
+      so matching on the same week is impossible by construction. I needed
       merge_asof to find each player's most recent PRIOR game instead.
     - Both dtype traps: pandas 3.0's nullable 'string' dtype vs plain 'object'
-      breaks merge_asof outright (raises) and silently returns near-zero
-      matches with a plain .merge(). .astype(object) on both sides required.
+      breaks merge_asof outright (it raises) and silently returns near-zero
+      matches with a plain .merge(). I had to .astype(object) on both sides
+      to fix it.
     """
     crosswalk = ids[['pfr_id', 'gsis_id']].dropna()
     crosswalk = crosswalk[crosswalk['gsis_id'].str.match(r'^\d{2}-\d{7}$')]
@@ -342,8 +354,8 @@ def add_weather(df, pbp):
 
 def add_surface(df):
     """Turf vs grass. Raw check: turf averages 47.2 total pts vs grass 44.7
-    (~2.5pt gap), real and physically plausible (turf is a faster surface).
-    Session 40.
+    (~2.5pt gap). That felt real to me, and physically plausible too, turf
+    is just a faster surface. Session 40.
     """
     df = df.copy()
     df['surface_clean'] = df['surface'].str.strip().str.lower()
@@ -352,10 +364,10 @@ def add_surface(df):
 
 
 def add_extreme_cold(df):
-    """Outdoor games below 32F, no precipitation required. A different
-    mechanism than bad_weather (ball grip/kicking distance in the cold,
-    not precip). Raw check: 42.9 vs 45.0 avg total (~2.1pt gap, n=63,
-    small sample, treat cautiously). Session 40.
+    """Outdoor games below 32F, no precipitation required. I think of this as
+    a different mechanism than bad_weather (ball grip/kicking distance in
+    the cold, not precip). Raw check: 42.9 vs 45.0 avg total (~2.1pt gap,
+    n=63, small sample, so I'm treating it cautiously). Session 40.
     """
     df = df.copy()
     df['extreme_cold'] = (df['roof'].isin(['outdoors', 'open'])) & (df['temp'] < 32)

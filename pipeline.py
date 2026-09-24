@@ -1,6 +1,7 @@
-"""Live, in-season prediction helpers, separate from elo_model.py's historical
-walk-forward training/evaluation. These answer "what do we know before THIS
-week's games" rather than grading against a known outcome.
+"""Live, in-season prediction helpers. I keep these separate from
+elo_model.py's historical walk-forward training/evaluation, since these
+answer "what do we know before THIS week's games" rather than grading
+against a known outcome.
 """
 import re
 import json
@@ -11,17 +12,18 @@ import metrics
 
 
 def build_training_data(years):
-    """The FULL historical feature pipeline, shared by main.py and
-    predict_week.py so they can never silently drift apart. This is the
-    exact bug that broke the first draft of predict_week.py (Session 41):
-    it predated several shipped features, and elo_model.run() now
+    """The FULL historical feature pipeline. I share this between main.py and
+    predict_week.py so they can never silently drift apart, which is exactly
+    the bug that broke my first draft of predict_week.py (Session 41): it
+    predated several shipped features, and elo_model.run() now
     unconditionally reads columns that draft never built. One source of
-    truth from here on; add new metrics.add_*() calls here ONLY.
+    truth from here on; I only add new metrics.add_*() calls here.
     """
     df = dataloader.load_schedules(years)
-    # Core play-by-play is deliberately NOT given a fallback. If it's missing
-    # for a season we asked for, that season's games would silently vanish
-    # from the ratings (add_epa_margin inner-joins on it), so this fails loudly.
+    # I deliberately did NOT give core play-by-play a fallback. If it's
+    # missing for a season I asked for, that season's games would silently
+    # vanish from the ratings (add_epa_margin inner-joins on it), so I'd
+    # rather this fail loudly.
     pbp = dataloader.load_pbp(years)
     df = metrics.add_epa_margin(df, pbp)
     df = metrics.add_adjusted_epa_margin(df)
@@ -33,8 +35,9 @@ def build_training_data(years):
     df = metrics.add_extreme_cold(df)
     df = metrics.add_qb_epa(df, pbp)
     # Optional/secondary data can lag pbp for a season still in progress, or
-    # not exist yet. Every merge below is a left join though, so a missing
-    # tail year just leaves NaN/0 for those rows instead of breaking anything.
+    # not exist yet. I made every merge below a left join though, so a
+    # missing tail year just leaves NaN/0 for those rows instead of
+    # breaking anything.
     ngs_passing = _load_allow_missing_tail(dataloader.load_ngs_passing, years)
     df = metrics.add_cpoe(df, ngs_passing)
     df = metrics.add_travel(df)
@@ -52,8 +55,9 @@ def build_training_data(years):
 
 def _load_allow_missing_tail(loader, years):
     """Load `years`; if that fails (nflverse 404s for a season with no
-    published file yet), retry once without the most recent year. Only for
-    secondary data; see build_training_data for why pbp doesn't use this."""
+    published file yet), I retry once without the most recent year. I only
+    use this for secondary data; see build_training_data for why pbp
+    doesn't get the same treatment."""
     try:
         return loader(years)
     except Exception:
@@ -64,27 +68,27 @@ def _load_allow_missing_tail(loader, years):
 
 def get_weather_forecast(lat, lon, game_date, contact_email='nfl-model@example.com'):
     """Pregame weather forecast from the National Weather Service (free, no API
-    key, US locations only, fine since every NFL stadium is in the US) for the
-    DAYTIME period actually covering `game_date` (a date object or 'YYYY-MM-DD'
-    string), NOT just whatever period happens to come first in the response.
-    Returns None if no period in the forecast covers that date (NWS only
-    publishes ~7-10 days out, so a game a month away has no real forecast yet.
-    An earlier version of this function silently returned TODAY's weather
-    for ANY game date, a real bug caught in Session 41 by checking the raw
-    NWS response instead of trusting the wrapped output).
+    key, US locations only, which is fine since every NFL stadium is in the
+    US) for the DAYTIME period actually covering `game_date` (a date object
+    or 'YYYY-MM-DD' string), NOT just whatever period happens to come first
+    in the response. Returns None if no period in the forecast covers that
+    date (NWS only publishes ~7-10 days out, so a game a month away has no
+    real forecast yet. An earlier version of this function silently returned
+    TODAY's weather for ANY game date, a real bug I caught in Session 41 by
+    checking the raw NWS response instead of trusting the wrapped output).
 
     Returns the same shape the model expects: {'bad_weather': bool,
     'clear_weather': bool, 'wind': float|None}.
 
-    IMPORTANT CAVEAT, unlike every other feature in this project: this CANNOT
-    be honestly backtested. `add_weather()`'s historical bad_weather/
+    IMPORTANT CAVEAT, unlike every other feature in this project: I can't
+    honestly backtest this one. `add_weather()`'s historical bad_weather/
     clear_weather columns come from `pbp['weather']`, the ACTUAL recorded
     conditions, known only after the game. A forecast is a genuinely
     different, less accurate signal (forecasts a few days out can be wrong),
-    and no historical forecast archive exists to validate against. This
-    function can only be smoke-tested for correctness, not honestly evaluated
-    the way rain_snow_coef/div_coef/etc. were. Treat it as a best-effort
-    stand-in, not a validated feature.
+    and no historical forecast archive exists for me to validate against.
+    I can only smoke-test this function for correctness, not honestly
+    evaluate it the way I did rain_snow_coef/div_coef/etc. Treat it as a
+    best-effort stand-in, not a validated feature.
     """
     import datetime
     if isinstance(game_date, str):
@@ -134,11 +138,13 @@ def predict_starters(schedule, injuries, snap_counts, ids):
       2. If that QB is listed Out/Doubtful on this week's injury report,
          fall back to the team's highest-trailing-snap-share QB instead.
 
-    Validated (Session 33) on 2018-2025 history: naive same-QB-as-last-time
-    baseline gets 86.7% right; this fallback logic improves that to 88.7%
-    overall, and 78.2% specifically on the ~119 games where the presumed
-    starter was actually flagged unavailable (vs the naive approach's 4.2%
-    on those same games). Returns `schedule` with a `predicted_qb_id` column.
+    I validated this in Session 33 on 2018-2025 history: the naive
+    same-QB-as-last-time baseline gets 86.7% right, and this fallback logic
+    improves that to 88.7% overall, and 78.2% specifically on the ~119 games
+    where the presumed starter was actually flagged unavailable (vs the
+    naive approach's 4.2% on those same games), which is the whole reason
+    I bothered with the fallback. Returns `schedule` with a
+    `predicted_qb_id` column.
     """
     home = schedule[['season', 'week', 'home_team', 'home_qb_id']].rename(
         columns={'home_team': 'team', 'home_qb_id': 'qb_id'})
