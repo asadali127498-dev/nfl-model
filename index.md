@@ -16,32 +16,39 @@ the fact.
   [`PROGRESS.md`](https://github.com/asadali127498-dev/nfl-model/blob/main/PROGRESS.md)
   in the repo.
 
-## Week 1 predictions (2026)
+## Week 3 predictions (2026)
 
-Generated 2026-09-09, before kickoff of every game listed. Full history of
-every week's predictions lives in the repo's
+Generated 2026-09-24, before kickoff of every game listed. Every week's file
+lives in the repo's
 [`predictions/`](https://github.com/asadali127498-dev/nfl-model/tree/main/predictions)
 folder — each file's git commit timestamp is the actual, unfakeable proof of
 when it was posted.
 
 | Date | Away | Home | Predicted Score | Margin | Home Win % | Total | Favorite |
 |---|---|---|---|---|---|---|---|
-| 2026-09-09 | NE | SEA | NE 21.6 - 23.7 SEA | +2.1 | 55.2% | 45.4 | SEA |
-| 2026-09-10 | SF | LA | SF 24.1 - 26.7 LA | +2.6 | 56.4% | 50.8 | LA |
-| 2026-09-13 | DAL | NYG | DAL 24.8 - 26.1 NYG | +1.3 | 53.2% | 50.9 | NYG |
-| 2026-09-13 | WAS | PHI | WAS 23.1 - 26.6 PHI | +3.5 | 58.7% | 49.6 | PHI |
-| 2026-09-13 | GB | MIN | GB 21.3 - 24.0 MIN | +2.7 | 56.7% | 45.3 | MIN |
-| 2026-09-13 | ARI | LAC | ARI 21.2 - 26.9 LAC | +5.8 | 64.1% | 48.1 | LAC |
-| 2026-09-13 | NYJ | TEN | NYJ 17.3 - 20.8 TEN | +3.5 | 58.8% | 38.1 | TEN |
-| 2026-09-13 | ATL | PIT | ATL 18.3 - 21.3 PIT | +3.0 | 57.4% | 39.6 | PIT |
-| 2026-09-13 | MIA | LV | MIA 24.0 - 20.8 LV | -3.2 | 42.0% | 44.8 | MIA |
-| 2026-09-13 | BAL | IND | BAL 26.5 - 25.0 IND | -1.5 | 46.2% | 51.5 | BAL |
-| 2026-09-13 | BUF | HOU | BUF 24.0 - 24.4 HOU | +0.4 | 51.0% | 48.4 | HOU |
-| 2026-09-13 | NO | DET | NO 19.5 - 26.5 DET | +7.0 | 67.0% | 45.9 | DET |
-| 2026-09-13 | TB | CIN | TB 25.0 - 28.0 CIN | +3.0 | 57.6% | 53.0 | CIN |
-| 2026-09-13 | CHI | CAR | CHI 25.7 - 22.7 CAR | -2.9 | 42.7% | 48.4 | CHI |
-| 2026-09-13 | CLE | JAX | CLE 14.9 - 25.2 JAX | +10.3 | 74.0% | 40.2 | JAX |
-| 2026-09-14 | DEN | KC | DEN 24.6 - 21.7 KC | -2.9 | 42.7% | 46.3 | DEN |
+| 2026-09-24 | ATL | GB | ATL 22.8 - 26.1 GB | +3.3 | 58.1% | 49.0 | GB |
+| 2026-09-27 | SEA | WAS | SEA 24.3 - 17.4 WAS | -6.9 | 33.4% | 41.7 | SEA |
+| 2026-09-27 | LA | DEN | LA 23.6 - 23.0 DEN | -0.6 | 48.5% | 46.6 | LA |
+| 2026-09-27 | LV | NO | LV 17.4 - 21.0 NO | +3.6 | 58.8% | 38.5 | NO |
+| 2026-09-27 | BAL | DAL | BAL 28.8 - 27.1 DAL | -1.7 | 45.7% | 55.9 | BAL |
+| 2026-09-27 | MIN | TB | MIN 23.8 - 20.0 TB | -3.8 | 40.7% | 43.8 | MIN |
+| 2026-09-27 | ARI | SF | ARI 19.9 - 31.6 SF | +11.7 | 76.8% | 51.5 | SF |
+| 2026-09-27 | CIN | PIT | CIN 24.4 - 23.4 PIT | -1.0 | 47.4% | 47.8 | CIN |
+| 2026-09-27 | NYJ | DET | NYJ 20.9 - 29.5 DET | +8.7 | 70.6% | 50.4 | DET |
+| 2026-09-27 | KC | MIA | KC 28.2 - 22.7 MIA | -5.5 | 36.5% | 50.8 | KC |
+| 2026-09-27 | NE | JAX | NE 23.5 - 24.3 JAX | +0.8 | 52.0% | 47.7 | JAX |
+| 2026-09-27 | HOU | IND | HOU 22.4 - 22.2 IND | -0.2 | 49.4% | 44.7 | HOU |
+| 2026-09-27 | CAR | CLE | CAR 20.9 - 19.5 CLE | -1.5 | 46.3% | 40.4 | CAR |
+| 2026-09-27 | LAC | BUF | LAC 20.8 - 30.1 BUF | +9.4 | 72.1% | 50.9 | BUF |
+| 2026-09-27 | TEN | NYG | TEN 17.0 - 22.2 NYG | +5.2 | 62.7% | 39.1 | NYG |
+| 2026-09-28 | PHI | CHI | PHI 22.9 - 25.8 CHI | +2.9 | 57.3% | 48.7 | CHI |
+
+All 16 games posted before kickoff, including tonight's ATL @ GB opener.
+
+### Previous weeks
+
+- [Week 2](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week02.md) — DET @ BUF had already kicked off when this file was generated, so it's not part of the pre-registered set for that week.
+- [Week 1](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week01.md) — all 16 games posted before kickoff.
 
 ## Source
 
