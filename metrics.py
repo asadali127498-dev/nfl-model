@@ -2,7 +2,7 @@ from math import radians, sin, cos, asin, sqrt
 import pandas as pd
 
 # Stadium coordinates (lat, lon) for every team abbreviation seen in the
-# 2018-2025 data. LV/OAK are the same franchise (relocated 2020) — kept as
+# 2018-2025 data. LV/OAK are the same franchise (relocated 2020), kept as
 # separate entries since both abbreviations appear in the historical data.
 STADIUM_COORDS = {
     'ARI': (33.5276, -112.2626), 'ATL': (33.7554, -84.4008), 'BAL': (39.2780, -76.6227),
@@ -60,7 +60,7 @@ def add_primetime(df):
     confound risk: national TV disproportionately picks marquee matchups
     between good teams, so any effect here could be team-quality selection,
     not a genuine primetime performance difference. Untested causally, only
-    empirically — see Session 36.
+    empirically. See Session 36.
     """
     df = df.copy()
     df['primetime'] = df['gametime'].str.split(':').str[0].astype(int) >= 19
@@ -69,9 +69,9 @@ def add_primetime(df):
 
 def add_turnover_margin(df, pbp):
     """Net turnover margin (home takeaways - home giveaways) per game. Used
-    to discount the TRAINING signal, not the prediction — turnover margin
+    to discount the TRAINING signal, not the prediction, since turnover margin
     strongly explains THIS game's result (corr 0.54) but barely predicts a
-    team's own future turnover margin (corr 0.08, essentially random) —
+    team's own future turnover margin (corr 0.08, essentially random). That's
     the classic signature of luck, not skill. See Session 36.
     """
     giveaway = ((pbp['interception'] == 1) | (pbp['fumble_lost'] == 1)).astype(int)
@@ -88,11 +88,11 @@ def add_turnover_margin(df, pbp):
 
 
 def add_sack_rate(df, pbp):
-    """Sack rate allowed on dropbacks — an O-line/pass-protection proxy.
+    """Sack rate allowed on dropbacks, an O-line/pass-protection proxy.
     corr(sack_rate_diff, result)=+0.36 raw, but real redundancy risk: sacks
     are already negative-EPA plays baked into home_epa/away_epa and qb_epa,
     so this may double-count the same signal those already capture (same
-    trap as the totals opponent-adjustment). Untested for that yet — see
+    trap as the totals opponent-adjustment). Untested for that yet, see
     Session 36's honest test for the answer.
     """
     dropbacks = pbp[pbp['qb_dropback'] == 1]
@@ -107,13 +107,13 @@ def add_sack_rate(df, pbp):
 
 def add_oline_fault_sack_rate(df, pbp, ftn):
     """Refined O-line signal: sack rate EXCLUDING sacks charted as the QB's
-    own fault (held the ball too long) — only sacks attributable to
+    own fault (held the ball too long), only sacks attributable to
     protection/scheme. FTN charting data only exists from 2022 onward, so
-    this is NaN (gracefully skipped by the update mechanism) for 2018-2021 —
-    the validation window (2020-22) effectively only reflects 2022's signal.
-    Session 39, testing whether this fixes why raw sack rate (add_sack_rate)
-    failed in Session 36 — possibly conflated QB pocket presence with O-line
-    quality.
+    this is NaN (gracefully skipped by the update mechanism) for 2018-2021,
+    meaning the validation window (2020-22) effectively only reflects 2022's
+    signal. Session 39, testing whether this fixes why raw sack rate
+    (add_sack_rate) failed in Session 36, possibly conflating QB pocket
+    presence with O-line quality.
     """
     merged = pbp.merge(ftn, left_on=['game_id', 'play_id'],
                        right_on=['nflverse_game_id', 'nflverse_play_id'], how='inner')
@@ -147,10 +147,10 @@ def add_epa_margin(df, pbp):
 
 
 def add_success_rate(df, pbp):
-    """Success rate — a play "succeeds" if it gains >=40% of yards-to-go on
+    """Success rate: a play "succeeds" if it gains >=40% of yards-to-go on
     1st down, >=60% on 2nd, or the full distance on 3rd/4th. Genuinely
     different information from EPA (corr=0.52, much lower than opponent-
-    adjustment's 0.90) — measures CONSISTENCY, not point value, so an
+    adjustment's 0.90). It measures CONSISTENCY, not point value, so an
     explosive-play offense and a consistent-chain-mover can have very
     different success rates at the same EPA level. Session 40.
     """
@@ -168,7 +168,7 @@ def add_success_rate(df, pbp):
 
 
 def add_adjusted_epa_margin(df):
-    """Opponent-adjusted EPA margin — corrects each team's game EPA for how
+    """Opponent-adjusted EPA margin. Corrects each team's game EPA for how
     good/bad the opponent's defense typically is (trailing, no lookahead),
     unlike raw epa_margin which treats a big game against a bad defense the
     same as a big game against a good one.
@@ -223,7 +223,7 @@ def add_qb_epa(df, pbp):
 
 
 def add_cpoe(df, ngs_passing):
-    """Completion % above expectation — a Next Gen Stats QB accuracy metric,
+    """Completion % above expectation, a Next Gen Stats QB accuracy metric,
     genuinely distinct from EPA/dropback (isolates throw accuracy specifically,
     not tangled with pass-rush/scheme effects the way EPA is). Session 38.
     """
@@ -241,7 +241,7 @@ def add_cpoe(df, ngs_passing):
 
 
 # Rough position-importance tiers for injury severity, excluding QB (already
-# covered by the separate persistent QB rating — including it here would
+# covered by the separate persistent QB rating; including it here would
 # double-count the same signal, same trap as travel_coef/body_clock_coef).
 POSITION_WEIGHT = {
     'WR': 2, 'T': 2, 'CB': 2, 'DE': 2,
@@ -252,7 +252,7 @@ POSITION_WEIGHT = {
 
 def add_injuries(df, injuries, doubtful_mult=0.0, questionable_mult=0.0):
     """doubtful_mult/questionable_mult give partial credit to Doubtful/
-    Questionable statuses on top of the always-full-weight 'Out' — both
+    Questionable statuses on top of the always-full-weight 'Out'. Both
     default to 0 (original MVP behavior: only Out counts) since a
     Questionable player usually DOES play. See Session 37 for the test.
     """
@@ -276,11 +276,11 @@ def add_injuries(df, injuries, doubtful_mult=0.0, questionable_mult=0.0):
 
 def add_injuries_starters(df, injuries, snap_counts, ids):
     """Refined injury severity, restricted to players who were recently STARTING
-    (trailing snap share > 0.5) before going Out — filters out the noise of
+    (trailing snap share > 0.5) before going Out. Filters out the noise of
     backup 'Out' designations that the simpler add_injuries() MVP counts equally.
 
     Two real data-linking gotchas solved here (see PROGRESS.md Session 32):
-    - snap_counts uses pfr_player_id, injuries uses gsis_id — different ID
+    - snap_counts uses pfr_player_id, injuries uses gsis_id. Different ID
       systems, linked via nfl.import_ids()'s crosswalk (only ~81% coverage,
       an accepted imprecision like several other features in this project).
     - An 'Out' player has NO snap-count row for that week (they didn't play),
@@ -288,7 +288,7 @@ def add_injuries_starters(df, injuries, snap_counts, ids):
       merge_asof to find each player's most recent PRIOR game instead.
     - Both dtype traps: pandas 3.0's nullable 'string' dtype vs plain 'object'
       breaks merge_asof outright (raises) and silently returns near-zero
-      matches with a plain .merge() — .astype(object) on both sides required.
+      matches with a plain .merge(). .astype(object) on both sides required.
     """
     crosswalk = ids[['pfr_id', 'gsis_id']].dropna()
     crosswalk = crosswalk[crosswalk['gsis_id'].str.match(r'^\d{2}-\d{7}$')]
@@ -342,7 +342,7 @@ def add_weather(df, pbp):
 
 def add_surface(df):
     """Turf vs grass. Raw check: turf averages 47.2 total pts vs grass 44.7
-    (~2.5pt gap) — real, physically plausible (turf is a faster surface).
+    (~2.5pt gap), real and physically plausible (turf is a faster surface).
     Session 40.
     """
     df = df.copy()
@@ -352,9 +352,9 @@ def add_surface(df):
 
 
 def add_extreme_cold(df):
-    """Outdoor games below 32F, no precipitation required — a different
+    """Outdoor games below 32F, no precipitation required. A different
     mechanism than bad_weather (ball grip/kicking distance in the cold,
-    not precip). Raw check: 42.9 vs 45.0 avg total (~2.1pt gap, n=63 —
+    not precip). Raw check: 42.9 vs 45.0 avg total (~2.1pt gap, n=63,
     small sample, treat cautiously). Session 40.
     """
     df = df.copy()
