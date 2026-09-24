@@ -1,4 +1,4 @@
-"""Live, in-season prediction helpers — separate from elo_model.py's historical
+"""Live, in-season prediction helpers, separate from elo_model.py's historical
 walk-forward training/evaluation. These answer "what do we know before THIS
 week's games" rather than grading against a known outcome.
 """
@@ -12,13 +12,16 @@ import metrics
 
 def build_training_data(years):
     """The FULL historical feature pipeline, shared by main.py and
-    predict_week.py so they can never silently drift apart — this is the
+    predict_week.py so they can never silently drift apart. This is the
     exact bug that broke the first draft of predict_week.py (Session 41):
     it predated several shipped features, and elo_model.run() now
     unconditionally reads columns that draft never built. One source of
     truth from here on; add new metrics.add_*() calls here ONLY.
     """
     df = dataloader.load_schedules(years)
+    # Core play-by-play is deliberately NOT given a fallback. If it's missing
+    # for a season we asked for, that season's games would silently vanish
+    # from the ratings (add_epa_margin inner-joins on it), so this fails loudly.
     pbp = dataloader.load_pbp(years)
     df = metrics.add_epa_margin(df, pbp)
     df = metrics.add_adjusted_epa_margin(df)
@@ -29,29 +32,44 @@ def build_training_data(years):
     df = metrics.add_surface(df)
     df = metrics.add_extreme_cold(df)
     df = metrics.add_qb_epa(df, pbp)
-    ngs_passing = dataloader.load_ngs_passing(years)
+    # Optional/secondary data can lag pbp for a season still in progress, or
+    # not exist yet. Every merge below is a left join though, so a missing
+    # tail year just leaves NaN/0 for those rows instead of breaking anything.
+    ngs_passing = _load_allow_missing_tail(dataloader.load_ngs_passing, years)
     df = metrics.add_cpoe(df, ngs_passing)
     df = metrics.add_travel(df)
     df = metrics.add_body_clock(df)
     df = metrics.add_primetime(df)
-    injuries = dataloader.load_injuries(years)
+    injuries = _load_allow_missing_tail(dataloader.load_injuries, years)
     df = metrics.add_injuries(df, injuries)
-    snap_counts = dataloader.load_snap_counts(years)
+    snap_counts = _load_allow_missing_tail(dataloader.load_snap_counts, years)
     ids = dataloader.load_ids()
     df = metrics.add_injuries_starters(df, injuries, snap_counts, ids)
-    ftn = dataloader.load_ftn([y for y in years if y >= 2022])  # FTN only exists from 2022
+    ftn = _load_allow_missing_tail(dataloader.load_ftn, [y for y in years if y >= 2022])  # FTN only exists from 2022
     df = metrics.add_oline_fault_sack_rate(df, pbp, ftn)
     return df
 
 
+def _load_allow_missing_tail(loader, years):
+    """Load `years`; if that fails (nflverse 404s for a season with no
+    published file yet), retry once without the most recent year. Only for
+    secondary data; see build_training_data for why pbp doesn't use this."""
+    try:
+        return loader(years)
+    except Exception:
+        if len(years) <= 1:
+            raise
+        return loader([y for y in years if y != max(years)])
+
+
 def get_weather_forecast(lat, lon, game_date, contact_email='nfl-model@example.com'):
     """Pregame weather forecast from the National Weather Service (free, no API
-    key, US locations only — fine, every NFL stadium is in the US) for the
+    key, US locations only, fine since every NFL stadium is in the US) for the
     DAYTIME period actually covering `game_date` (a date object or 'YYYY-MM-DD'
-    string) — NOT just whatever period happens to come first in the response.
+    string), NOT just whatever period happens to come first in the response.
     Returns None if no period in the forecast covers that date (NWS only
-    publishes ~7-10 days out; a game a month away has no real forecast yet —
-    an earlier version of this function silently returned TODAY's weather
+    publishes ~7-10 days out, so a game a month away has no real forecast yet.
+    An earlier version of this function silently returned TODAY's weather
     for ANY game date, a real bug caught in Session 41 by checking the raw
     NWS response instead of trusting the wrapped output).
 
@@ -60,7 +78,7 @@ def get_weather_forecast(lat, lon, game_date, contact_email='nfl-model@example.c
 
     IMPORTANT CAVEAT, unlike every other feature in this project: this CANNOT
     be honestly backtested. `add_weather()`'s historical bad_weather/
-    clear_weather columns come from `pbp['weather']` — the ACTUAL recorded
+    clear_weather columns come from `pbp['weather']`, the ACTUAL recorded
     conditions, known only after the game. A forecast is a genuinely
     different, less accurate signal (forecasts a few days out can be wrong),
     and no historical forecast archive exists to validate against. This
