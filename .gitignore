@@ -2,3 +2,4 @@ PROGRESS.md
 PROJECT.md
 __pycache__/
 git restore --staged __pycache__
+cache/
