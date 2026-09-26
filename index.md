@@ -16,6 +16,19 @@ the fact.
   [`PROGRESS.md`](https://github.com/asadali127498-dev/nfl-model/blob/main/PROGRESS.md)
   in the repo.
 
+## How it's doing so far
+
+I graded these straight from the files I posted, against the Vegas closing
+line (model / Vegas, and lower is better). The game-by-game breakdown is in the
+[scorecard](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-scorecard.md).
+
+| Games | n | Straight up | Margin MAE | Brier | Total MAE |
+|---|---|---|---|---|---|
+| Pre-registered (Week 1) | 16 | 10-6 / 12-4 | 11.82 / 11.28 | 0.232 / 0.214 | 12.24 / 11.69 |
+| All graded (Weeks 1-2) | 31 | 18-13 / 22-9 | 12.21 / 11.79 | 0.237 / 0.226 | 11.09 / 10.98 |
+
+So far I'm a little behind Vegas, which is about the same gap I had in testing. Two weeks is way too small a sample to judge anything though, so I'm treating this as a running tally.
+
 ## Week 3 predictions (2026)
 
 Generated 2026-09-24, before kickoff of every game listed. Every week's file
@@ -47,8 +60,8 @@ All 16 games posted before kickoff, including tonight's ATL @ GB opener.
 
 ### Previous weeks
 
-- [Week 2](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week02.md) — DET @ BUF had already kicked off when this file was generated, so it's not part of the pre-registered set for that week.
-- [Week 1](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week01.md) — all 16 games posted before kickoff.
+- [Week 2](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week02.md): I generated this before kickoff but didn't push it until after the games, so it doesn't count as pre-registered. I also never predicted DET @ BUF.
+- [Week 1](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week01.md): all 16 games posted before kickoff.
 
 ## Source
 
