@@ -24,10 +24,10 @@ line (model / Vegas, and lower is better). The game-by-game breakdown is in the
 
 | Games | n | Straight up | Margin MAE | Brier | Total MAE |
 |---|---|---|---|---|---|
-| Pre-registered (Weeks 1, 3, 4) | 48 | 29-19 / 30-18 | 8.67 / 8.90 | 0.217 / 0.229 | 11.81 / 10.75 |
-| All graded (Weeks 1-4) | 63 | 37-26 / 40-23 | 9.61 / 9.71 | 0.223 / 0.231 | 11.35 / 10.63 |
+| Pre-registered (Weeks 1, 3-5) | 63 | 39-24 / 39-24 | 8.90 / 9.25 | 0.211 / 0.225 | 11.54 / 10.61 |
+| All graded (Weeks 1-5) | 78 | 47-31 / 49-29 | 9.62 / 9.85 | 0.217 / 0.228 | 11.22 / 10.54 |
 
-Week 4 was my best week yet. I went 10-6 straight up to Vegas's 9-7, with a margin error of 6.22 vs 7.31 and a Brier of 0.200 vs 0.219. Across everything I pre-registered, I'm now slightly ahead of Vegas on both margin and win probability. My totals are the weak spot though (11.81 vs 10.75), so that's what I'm looking at next. It's still only four weeks, so I don't want to make too much of any of this yet.
+Week 5 was the third week in a row I beat Vegas. I went 10-5 straight up to their 9-6, with a margin error of 9.65 vs 10.40 and a Brier of 0.194 vs 0.212 (NYG @ WAS ended in a tie, which counts as a miss for both of us straight up). Across everything I pre-registered, I'm now tied with Vegas straight up and ahead on margin and win probability. Totals are still my weak spot (11.54 vs 10.61), and I'm looking at a fix for that. The London game (PHI @ JAX) went JAX by 2, and without the home field bump I talked about, my miss on it would've been 5.25 points instead of 6.5.
 
 ## Week 5 predictions (2026)
 
