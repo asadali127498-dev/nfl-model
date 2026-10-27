@@ -1,18 +1,19 @@
 # 2026 Scorecard
 
-Updated 2026-10-13T20:58:56 (local time). I graded every number here from the prediction files exactly as I posted them, not from a re-run of the model. The Vegas numbers are the closing line from nflverse, and the Vegas win % is the moneyline with the vig taken out.
+Updated 2026-10-27T17:33:54 (local time). I graded every number here from the prediction files exactly as I posted them, not from a re-run of the model. The Vegas numbers are the closing line from nflverse, and the Vegas win % is the moneyline with the vig taken out.
 
 Each cell is model / Vegas, and lower is better for MAE and Brier. For reference, my margin MAE over the 2023-2025 test seasons was 10.17 and Vegas was 9.74. I don't think a couple of weeks says much of anything yet, so I'm treating this as a running tally.
 
 | Games | n | Straight up | Margin MAE | Brier | Total MAE | Closer than Vegas |
 |---|---|---|---|---|---|---|
-| Pre-registered only | 63 | 39-24 / 39-24 | 8.90 / 9.25 | 0.211 / 0.225 | 11.54 / 10.61 | 33 of 63 |
-| All graded games | 78 | 47-31 / 49-29 | 9.62 / 9.85 | 0.217 / 0.228 | 11.22 / 10.54 | 42 of 78 |
+| Pre-registered only | 77 | 46-31 / 49-28 | 9.28 / 9.40 | 0.219 / 0.226 | 11.19 / 10.58 | 38 of 77 |
+| All graded games | 92 | 54-38 / 59-33 | 9.83 / 9.88 | 0.223 / 0.228 | 10.97 / 10.52 | 47 of 92 |
 | Week 1 | 16 | 10-6 / 12-4 | 11.82 / 11.28 | 0.232 / 0.214 | 12.24 / 11.69 | 6 of 16 |
 | Week 2 (not pre-registered) | 15 | 8-7 / 10-5 | 12.63 / 12.33 | 0.242 / 0.239 | 9.87 / 10.23 | 9 of 15 |
 | Week 3 | 16 | 9-7 / 9-7 | 7.96 / 8.09 | 0.218 / 0.254 | 11.04 / 10.94 | 8 of 16 |
 | Week 4 | 16 | 10-6 / 9-7 | 6.22 / 7.31 | 0.200 / 0.219 | 12.14 / 9.62 | 11 of 16 |
 | Week 5 | 15 | 10-5 / 9-6 | 9.65 / 10.40 | 0.194 / 0.212 | 10.67 / 10.17 | 8 of 15 |
+| Week 7 | 14 | 7-7 / 10-4 | 11.01 / 10.07 | 0.253 / 0.231 | 9.59 / 10.43 | 5 of 14 |
 
 Pre-registered means I committed that week's file before the game kicked off. I pushed the Week 2 file after its games were already played, so I'm still grading it to keep the record complete, but it doesn't count toward the top row.
 
@@ -128,5 +129,26 @@ File first committed 2026-10-06 19:37 UTC-04:00.
 | DET @ ARI | DET 45 - 21 ARI | -4.6 | -5.5 | -24 | 19.4 | 18.5 | 38.7% | 30.4% | DET (yes) |
 | BAL @ ATL | BAL 30 - 23 ATL | -0.4 | +3.5 | -7 | 6.6 | 10.5 | 48.9% | 60.9% | BAL (yes) |
 | BUF @ LA | BUF 37 - 34 LA | +0.6 | +3.5 | -3 | 3.6 | 6.5 | 51.4% | 62.2% | LA (no) |
+
+## Week 7
+
+File first committed 2026-10-20 19:33 UTC-04:00.
+
+| Game | Final | Model margin | Vegas line | Result | Model err | Vegas err | Model win % | Vegas win % | SU pick |
+|---|---|---|---|---|---|---|---|---|---|
+| NE @ CHI | NE 24 - 30 CHI | -0.0 | +3.0 | +6 | 6.0 | 3.0 | 49.9% | 58.3% | NE (no) |
+| PIT @ NO | PIT 16 - 10 NO | -3.1 | -3.0 | -6 | 2.9 | 3.0 | 42.3% | 40.7% | PIT (yes) |
+| CLE @ TEN | CLE 27 - 24 TEN | -1.5 | -1.5 | -3 | 1.5 | 1.5 | 46.2% | 45.7% | CLE (yes) |
+| MIA @ NYJ | MIA 28 - 25 NYJ | +3.0 | +3.5 | -3 | 6.0 | 6.5 | 57.4% | 65.7% | NYJ (no) |
+| NYG @ HOU | NYG 27 - 21 HOU | +5.9 | +10.0 | -6 | 11.9 | 16.0 | 64.4% | 80.4% | HOU (no) |
+| TB @ CAR | TB 43 - 13 CAR | +4.0 | +3.0 | -30 | 34.0 | 33.0 | 59.8% | 60.0% | CAR (no) |
+| CIN @ BAL | CIN 35 - 13 BAL | +1.8 | -3.0 | -22 | 23.8 | 19.0 | 54.4% | 40.7% | BAL (no) |
+| SF @ ATL | SF 20 - 29 ATL | -5.4 | -2.5 | +9 | 14.4 | 11.5 | 36.7% | 41.7% | SF (no) |
+| IND @ MIN | IND 10 - 16 MIN | +5.1 | +6.5 | +6 | 0.9 | 0.5 | 62.6% | 73.4% | MIN (yes) |
+| DEN @ ARI | DEN 30 - 16 ARI | -4.7 | -4.5 | -14 | 9.3 | 9.5 | 38.6% | 33.1% | DEN (yes) |
+| LA @ LV | LA 35 - 21 LV | -3.3 | -3.5 | -14 | 10.7 | 10.5 | 41.9% | 38.4% | LA (yes) |
+| GB @ DET | GB 17 - 20 DET | +3.2 | +3.5 | +3 | 0.2 | 0.5 | 58.0% | 63.1% | DET (yes) |
+| KC @ SEA | KC 3 - 20 SEA | +2.1 | +3.0 | +17 | 14.9 | 14.0 | 55.2% | 59.3% | SEA (yes) |
+| DAL @ PHI | DAL 38 - 21 PHI | +0.6 | -4.5 | -17 | 17.6 | 12.5 | 51.5% | 33.6% | PHI (no) |
 
 Margins, lines, and win % are all from the home team's side, so +3.0 means the home team by 3.
