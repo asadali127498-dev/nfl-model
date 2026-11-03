@@ -24,14 +24,14 @@ line (model / Vegas, and lower is better). The game-by-game breakdown is in the
 
 | Games | n | Straight up | Margin MAE | Brier | Total MAE |
 |---|---|---|---|---|---|
-| Pre-registered (Weeks 1, 3-5, 7) | 77 | 46-31 / 49-28 | 9.28 / 9.40 | 0.219 / 0.226 | 11.19 / 10.58 |
-| All graded (Weeks 1-5, 7) | 92 | 54-38 / 59-33 | 9.83 / 9.88 | 0.223 / 0.228 | 10.97 / 10.52 |
+| Pre-registered (Weeks 1, 3-5, 7-8) | 91 | 57-34 / 60-31 | 9.48 / 9.62 | 0.214 / 0.219 | 11.46 / 10.69 |
+| All graded (Weeks 1-5, 7-8) | 106 | 65-41 / 70-36 | 9.93 / 10.00 | 0.218 / 0.222 | 11.24 / 10.62 |
 
-Week 7 was my first rough week since week 1. I went 7-7 straight up to Vegas's 10-4, with a margin error of 11.01 vs 10.07 and a Brier of 0.253 vs 0.231. TB @ CAR (I missed by 34) and CIN @ BAL (missed by 24) did most of the damage, but Vegas missed both of those badly too. The good news is it was my first week beating Vegas on totals (9.59 vs 10.43). Overall I'm still a little ahead on margin and win probability across everything I pre-registered, and still behind on totals.
+Week 8 was close. Vegas and I both went 11-3 straight up, I beat them on margin error (10.56 vs 10.82), and they beat me on Brier (0.181 vs 0.187) and totals (11.29 vs 12.99). TEN @ CIN going for 79 and LV @ NYJ going for 71 didn't help anyone's totals. The CLE @ PIT game I flagged last week ended up at 33 total, so my 30.4 with the rain penalty actually beat Vegas's 38.5. That's one game though. Across everything I pre-registered I'm still a little ahead on margin and win probability and behind on totals.
 
-## Week 8 predictions (2026)
+## Week 9 predictions (2026)
 
-Generated 2026-10-27, before kickoff of every game listed. Every week's file
+Generated 2026-11-03, before kickoff of every game listed. Every week's file
 lives in the repo's
 [`predictions/`](https://github.com/asadali127498-dev/nfl-model/tree/main/predictions)
 folder, and each file's git commit timestamp is the actual proof of when I
@@ -39,30 +39,32 @@ posted it.
 
 | Date | Away | Home | Predicted Score | Margin | Home Win % | Total | Favorite |
 |---|---|---|---|---|---|---|---|
-| 2026-10-29 | CAR | GB | CAR 22.8 - 27.9 GB | +5.1 | 62.5% | 50.8 | GB |
-| 2026-11-01 | PHI | WAS | PHI 23.5 - 26.1 WAS | +2.6 | 56.4% | 49.6 | WAS |
-| 2026-11-01 | NE | MIA | NE 27.8 - 20.4 MIA | -7.3 | 32.3% | 48.2 | NE |
-| 2026-11-01 | LAC | LA | LAC 17.9 - 26.1 LA | +8.2 | 69.5% | 43.9 | LA |
-| 2026-11-01 | ATL | TB | ATL 22.2 - 22.3 TB | +0.1 | 50.2% | 44.5 | TB |
-| 2026-11-01 | CLE | PIT | CLE 12.2 - 18.1 PIT | +5.9 | 64.3% | 30.4 | PIT |
-| 2026-11-01 | KC | DEN | KC 17.8 - 20.2 DEN | +2.4 | 56.0% | 38.0 | DEN |
-| 2026-11-01 | IND | JAX | IND 17.3 - 24.6 JAX | +7.4 | 67.7% | 41.9 | JAX |
-| 2026-11-01 | MIN | DET | MIN 20.6 - 23.2 DET | +2.6 | 56.4% | 43.7 | DET |
-| 2026-11-01 | ARI | DAL | ARI 25.0 - 31.6 DAL | +6.6 | 65.9% | 56.5 | DAL |
-| 2026-11-01 | TEN | CIN | TEN 16.0 - 27.2 CIN | +11.2 | 75.7% | 43.1 | CIN |
-| 2026-11-01 | BAL | BUF | BAL 26.0 - 31.7 BUF | +5.7 | 63.9% | 57.7 | BUF |
-| 2026-11-01 | LV | NYJ | LV 21.5 - 22.6 NYJ | +1.2 | 53.0% | 44.1 | NYJ |
-| 2026-11-02 | CHI | SEA | CHI 21.5 - 24.0 SEA | +2.5 | 56.2% | 45.5 | SEA |
+| 2026-11-05 | JAX | BAL | JAX 24.1 - 19.4 BAL | -4.7 | 38.4% | 43.6 | JAX |
+| 2026-11-08 | GB | NE | GB 19.1 - 22.6 NE | +3.5 | 58.6% | 41.8 | NE |
+| 2026-11-08 | LV | SF | LV 20.6 - 29.7 SF | +9.2 | 71.7% | 50.3 | SF |
+| 2026-11-08 | HOU | LAC | HOU 22.7 - 18.2 LAC | -4.4 | 39.1% | 40.9 | HOU |
+| 2026-11-08 | LA | WAS | LA 26.7 - 24.2 WAS | -2.5 | 43.7% | 50.9 | LA |
+| 2026-11-08 | NYG | PHI | NYG 23.6 - 22.1 PHI | -1.5 | 46.2% | 45.6 | NYG |
+| 2026-11-08 | DAL | IND | DAL 28.2 - 26.6 IND | -1.6 | 46.1% | 54.8 | DAL |
+| 2026-11-08 | DET | MIA | DET 29.9 - 23.5 MIA | -6.4 | 34.5% | 53.4 | DET |
+| 2026-11-08 | NYJ | KC | NYJ 21.9 - 29.0 KC | +7.2 | 67.3% | 50.9 | KC |
+| 2026-11-08 | DEN | CAR | DEN 25.6 - 21.0 CAR | -4.6 | 38.6% | 46.6 | DEN |
+| 2026-11-08 | CIN | ATL | CIN 27.3 - 23.9 ATL | -3.4 | 41.6% | 51.2 | CIN |
+| 2026-11-08 | ARI | SEA | ARI 14.6 - 23.3 SEA | +8.7 | 70.6% | 37.9 | SEA |
+| 2026-11-08 | CLE | NO | CLE 16.8 - 19.1 NO | +2.3 | 55.7% | 35.9 | NO |
+| 2026-11-08 | TB | CHI | TB 15.7 - 22.8 CHI | +7.0 | 67.0% | 38.5 | CHI |
+| 2026-11-09 | BUF | MIN | BUF 25.0 - 21.7 MIN | -3.2 | 42.0% | 46.7 | BUF |
 
-All 14 games posted before kickoff, including Thursday night's CAR @ GB (HOU, NO, NYG, and SF are on bye).
-One heads up: the 30.4 total for CLE @ PIT includes my full 8 point rain penalty
-because the forecast says there's a chance of showers. That penalty was trained
-on games where it actually rained, so I think it's too low here. Without it, it
-would be about 38.4. I'm keeping the model locked for the season and fixing this
-in the offseason.
+All 15 games posted before kickoff, including Thursday night's JAX @ BAL (PIT and TEN are on bye).
+Two heads ups. CIN @ ATL is in Madrid, and my model still gives ATL home field,
+so without it that one would be about ATL -4.7 instead of -3.4. And four totals
+(ARI @ SEA, JAX @ BAL, GB @ NE, TB @ CHI) have my full 8 point rain penalty because
+the forecast mentions rain, even the "slight chance" ones. The details are in
+the [week 9 file](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week09.md).
 
 ### Previous weeks
 
+- [Week 8](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week08.md): all 14 games posted before kickoff.
 - [Week 7](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week07.md): all 14 games posted before kickoff.
 - Week 6: I didn't post predictions for week 6 before the games, so there's nothing to grade. I'm not going to post them after the fact.
 - [Week 5](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week05.md): all 15 games posted before kickoff.
