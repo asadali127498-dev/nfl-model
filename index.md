@@ -24,14 +24,14 @@ line (model / Vegas, and lower is better). The game-by-game breakdown is in the
 
 | Games | n | Straight up | Margin MAE | Brier | Total MAE |
 |---|---|---|---|---|---|
-| Pre-registered (Weeks 1, 3-5, 7-8) | 91 | 57-34 / 60-31 | 9.48 / 9.62 | 0.214 / 0.219 | 11.46 / 10.69 |
-| All graded (Weeks 1-5, 7-8) | 106 | 65-41 / 70-36 | 9.93 / 10.00 | 0.218 / 0.222 | 11.24 / 10.62 |
+| Pre-registered (Weeks 1, 3-5, 7-9) | 106 | 71-35 / 74-32 | 9.46 / 9.50 | 0.207 / 0.205 | 11.60 / 10.60 |
+| All graded (Weeks 1-5, 7-9) | 121 | 79-42 / 84-37 | 9.86 / 9.86 | 0.211 / 0.209 | 11.38 / 10.56 |
 
-Week 8 was close. Vegas and I both went 11-3 straight up, I beat them on margin error (10.56 vs 10.82), and they beat me on Brier (0.181 vs 0.187) and totals (11.29 vs 12.99). TEN @ CIN going for 79 and LV @ NYJ going for 71 didn't help anyone's totals. The CLE @ PIT game I flagged last week ended up at 33 total, so my 30.4 with the rain penalty actually beat Vegas's 38.5. That's one game though. Across everything I pre-registered I'm still a little ahead on margin and win probability and behind on totals.
+Week 9 was the best week for both of us. Vegas and I each went 14-1 straight up. Vegas was more confident on the ones it got right though, so it won on Brier (0.121 vs my 0.164) and edged me on margin error (8.80 vs 9.36). GB @ NE going for 72 and HOU @ LAC for 66 wrecked the totals again. Across everything I pre-registered I'm now basically tied with Vegas on margin (9.46 vs 9.50) and Brier (0.207 vs 0.205), which is down from being ahead on both a few weeks ago. I'm still about a point behind on totals (11.60 vs 10.60). The Madrid game (CIN @ ATL) went ATL by -17, and without the home field bump I flagged, my miss would've been 12.35 instead of 13.6. That's three international games in a row where dropping the bump would've helped.
 
-## Week 9 predictions (2026)
+## Week 10 predictions (2026)
 
-Generated 2026-11-03, before kickoff of every game listed. Every week's file
+Generated 2026-11-10, before kickoff of every game listed. Every week's file
 lives in the repo's
 [`predictions/`](https://github.com/asadali127498-dev/nfl-model/tree/main/predictions)
 folder, and each file's git commit timestamp is the actual proof of when I
@@ -39,31 +39,31 @@ posted it.
 
 | Date | Away | Home | Predicted Score | Margin | Home Win % | Total | Favorite |
 |---|---|---|---|---|---|---|---|
-| 2026-11-05 | JAX | BAL | JAX 24.1 - 19.4 BAL | -4.7 | 38.4% | 43.6 | JAX |
-| 2026-11-08 | GB | NE | GB 19.1 - 22.6 NE | +3.5 | 58.6% | 41.8 | NE |
-| 2026-11-08 | LV | SF | LV 20.6 - 29.7 SF | +9.2 | 71.7% | 50.3 | SF |
-| 2026-11-08 | HOU | LAC | HOU 22.7 - 18.2 LAC | -4.4 | 39.1% | 40.9 | HOU |
-| 2026-11-08 | LA | WAS | LA 26.7 - 24.2 WAS | -2.5 | 43.7% | 50.9 | LA |
-| 2026-11-08 | NYG | PHI | NYG 23.6 - 22.1 PHI | -1.5 | 46.2% | 45.6 | NYG |
-| 2026-11-08 | DAL | IND | DAL 28.2 - 26.6 IND | -1.6 | 46.1% | 54.8 | DAL |
-| 2026-11-08 | DET | MIA | DET 29.9 - 23.5 MIA | -6.4 | 34.5% | 53.4 | DET |
-| 2026-11-08 | NYJ | KC | NYJ 21.9 - 29.0 KC | +7.2 | 67.3% | 50.9 | KC |
-| 2026-11-08 | DEN | CAR | DEN 25.6 - 21.0 CAR | -4.6 | 38.6% | 46.6 | DEN |
-| 2026-11-08 | CIN | ATL | CIN 27.3 - 23.9 ATL | -3.4 | 41.6% | 51.2 | CIN |
-| 2026-11-08 | ARI | SEA | ARI 14.6 - 23.3 SEA | +8.7 | 70.6% | 37.9 | SEA |
-| 2026-11-08 | CLE | NO | CLE 16.8 - 19.1 NO | +2.3 | 55.7% | 35.9 | NO |
-| 2026-11-08 | TB | CHI | TB 15.7 - 22.8 CHI | +7.0 | 67.0% | 38.5 | CHI |
-| 2026-11-09 | BUF | MIN | BUF 25.0 - 21.7 MIN | -3.2 | 42.0% | 46.7 | BUF |
+| 2026-11-12 | WAS | NYG | WAS 19.9 - 21.1 NYG | +1.3 | 53.1% | 41.0 | NYG |
+| 2026-11-15 | PIT | CIN | PIT 24.0 - 27.5 CIN | +3.5 | 58.6% | 51.5 | CIN |
+| 2026-11-15 | SF | DAL | SF 31.4 - 27.1 DAL | -4.3 | 39.5% | 58.5 | SF |
+| 2026-11-15 | SEA | LV | SEA 25.1 - 18.1 LV | -7.0 | 33.1% | 43.1 | SEA |
+| 2026-11-15 | JAX | TEN | JAX 28.8 - 17.6 TEN | -11.2 | 24.2% | 46.4 | JAX |
+| 2026-11-15 | BUF | NYJ | BUF 31.8 - 20.5 NYJ | -11.3 | 24.0% | 52.2 | BUF |
+| 2026-11-15 | LA | ARI | LA 27.3 - 20.8 ARI | -6.5 | 34.2% | 48.1 | LA |
+| 2026-11-15 | MIA | IND | MIA 23.0 - 26.1 IND | +3.1 | 57.7% | 49.2 | IND |
+| 2026-11-15 | MIN | GB | MIN 17.4 - 23.2 GB | +5.8 | 64.1% | 40.6 | GB |
+| 2026-11-15 | HOU | CLE | HOU 18.2 - 12.5 CLE | -5.7 | 36.2% | 30.7 | HOU |
+| 2026-11-15 | KC | ATL | KC 26.3 - 22.3 ATL | -4.1 | 40.0% | 48.6 | KC |
+| 2026-11-15 | NE | DET | NE 24.3 - 27.7 DET | +3.4 | 58.5% | 52.0 | DET |
+| 2026-11-15 | CAR | NO | CAR 21.7 - 21.7 NO | +0.0 | 50.1% | 43.4 | NO |
+| 2026-11-16 | LAC | BAL | LAC 20.1 - 25.0 BAL | +4.9 | 61.9% | 45.1 | BAL |
 
-All 15 games posted before kickoff, including Thursday night's JAX @ BAL (PIT and TEN are on bye).
-Two heads ups. CIN @ ATL is in Madrid, and my model still gives ATL home field,
-so without it that one would be about ATL -4.7 instead of -3.4. And four totals
-(ARI @ SEA, JAX @ BAL, GB @ NE, TB @ CHI) have my full 8 point rain penalty because
-the forecast mentions rain, even the "slight chance" ones. The details are in
-the [week 9 file](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week09.md).
+All 14 games posted before kickoff, including Thursday night's WAS @ NYG (CHI, DEN, PHI, and TB are on bye).
+Two heads ups. NE @ DET is in Munich, and my model still gives DET home field,
+so without it that one would be about DET +2.2 instead of +3.4. And two totals
+(WAS @ NYG and HOU @ CLE) have my full 8 point rain penalty because the forecast
+mentions rain, though Cleveland's is only a "slight chance." The details are in
+the [week 10 file](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week10.md).
 
 ### Previous weeks
 
+- [Week 9](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week09.md): all 15 games posted before kickoff.
 - [Week 8](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week08.md): all 14 games posted before kickoff.
 - [Week 7](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week07.md): all 14 games posted before kickoff.
 - Week 6: I didn't post predictions for week 6 before the games, so there's nothing to grade. I'm not going to post them after the fact.
