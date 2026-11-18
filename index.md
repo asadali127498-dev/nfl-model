@@ -24,14 +24,14 @@ line (model / Vegas, and lower is better). The game-by-game breakdown is in the
 
 | Games | n | Straight up | Margin MAE | Brier | Total MAE |
 |---|---|---|---|---|---|
-| Pre-registered (Weeks 1, 3-5, 7-9) | 106 | 71-35 / 74-32 | 9.46 / 9.50 | 0.207 / 0.205 | 11.60 / 10.60 |
-| All graded (Weeks 1-5, 7-9) | 121 | 79-42 / 84-37 | 9.86 / 9.86 | 0.211 / 0.209 | 11.38 / 10.56 |
+| Pre-registered (Weeks 1, 3-5, 7-10) | 120 | 80-40 / 83-37 | 9.56 / 9.60 | 0.207 / 0.203 | 11.24 / 10.34 |
+| All graded (Weeks 1-5, 7-10) | 135 | 88-47 / 93-42 | 9.90 / 9.91 | 0.211 / 0.207 | 11.08 / 10.33 |
 
-Week 9 was the best week for both of us. Vegas and I each went 14-1 straight up. Vegas was more confident on the ones it got right though, so it won on Brier (0.121 vs my 0.164) and edged me on margin error (8.80 vs 9.36). GB @ NE going for 72 and HOU @ LAC for 66 wrecked the totals again. Across everything I pre-registered I'm now basically tied with Vegas on margin (9.46 vs 9.50) and Brier (0.207 vs 0.205), which is down from being ahead on both a few weeks ago. I'm still about a point behind on totals (11.60 vs 10.60). The Madrid game (CIN @ ATL) went ATL by -17, and without the home field bump I flagged, my miss would've been 12.35 instead of 13.6. That's three international games in a row where dropping the bump would've helped.
+Week 10 was close again. Vegas and I both went 9-5 straight up. I edged them on margin error (10.32 vs 10.36) and they beat me on Brier (0.184 vs my 0.208). Totals were my closest week yet (8.51 vs 8.36), even with SF @ DAL going for 86. Across everything I pre-registered I'm still basically tied with Vegas on margin (9.56 vs 9.60) and a hair behind on Brier (0.207 vs 0.203), about three games behind straight up, and a point behind on totals (11.24 vs 10.34). I need to take back something I said last week. I'd pointed out that dropping the home field bump would've helped in all three international games so far. The Munich game (NE @ DET) went DET by 25, and dropping the bump would've made my miss a little worse (22.85 vs 21.6), so it's 3 of 4 now. That's not much of a pattern anymore.
 
-## Week 10 predictions (2026)
+## Week 11 predictions (2026)
 
-Generated 2026-11-10, before kickoff of every game listed. Every week's file
+Generated 2026-11-18, before kickoff of every game listed. Every week's file
 lives in the repo's
 [`predictions/`](https://github.com/asadali127498-dev/nfl-model/tree/main/predictions)
 folder, and each file's git commit timestamp is the actual proof of when I
@@ -39,30 +39,35 @@ posted it.
 
 | Date | Away | Home | Predicted Score | Margin | Home Win % | Total | Favorite |
 |---|---|---|---|---|---|---|---|
-| 2026-11-12 | WAS | NYG | WAS 19.9 - 21.1 NYG | +1.3 | 53.1% | 41.0 | NYG |
-| 2026-11-15 | PIT | CIN | PIT 24.0 - 27.5 CIN | +3.5 | 58.6% | 51.5 | CIN |
-| 2026-11-15 | SF | DAL | SF 31.4 - 27.1 DAL | -4.3 | 39.5% | 58.5 | SF |
-| 2026-11-15 | SEA | LV | SEA 25.1 - 18.1 LV | -7.0 | 33.1% | 43.1 | SEA |
-| 2026-11-15 | JAX | TEN | JAX 28.8 - 17.6 TEN | -11.2 | 24.2% | 46.4 | JAX |
-| 2026-11-15 | BUF | NYJ | BUF 31.8 - 20.5 NYJ | -11.3 | 24.0% | 52.2 | BUF |
-| 2026-11-15 | LA | ARI | LA 27.3 - 20.8 ARI | -6.5 | 34.2% | 48.1 | LA |
-| 2026-11-15 | MIA | IND | MIA 23.0 - 26.1 IND | +3.1 | 57.7% | 49.2 | IND |
-| 2026-11-15 | MIN | GB | MIN 17.4 - 23.2 GB | +5.8 | 64.1% | 40.6 | GB |
-| 2026-11-15 | HOU | CLE | HOU 18.2 - 12.5 CLE | -5.7 | 36.2% | 30.7 | HOU |
-| 2026-11-15 | KC | ATL | KC 26.3 - 22.3 ATL | -4.1 | 40.0% | 48.6 | KC |
-| 2026-11-15 | NE | DET | NE 24.3 - 27.7 DET | +3.4 | 58.5% | 52.0 | DET |
-| 2026-11-15 | CAR | NO | CAR 21.7 - 21.7 NO | +0.0 | 50.1% | 43.4 | NO |
-| 2026-11-16 | LAC | BAL | LAC 20.1 - 25.0 BAL | +4.9 | 61.9% | 45.1 | BAL |
+| 2026-11-19 | IND | HOU | IND 18.1 - 24.4 HOU | +6.4 | 65.5% | 42.5 | HOU |
+| 2026-11-22 | NYJ | LAC | NYJ 20.1 - 22.5 LAC | +2.4 | 55.9% | 42.6 | LAC |
+| 2026-11-22 | MIN | SF | MIN 15.6 - 20.5 SF | +5.0 | 62.2% | 36.1 | SF |
+| 2026-11-22 | PIT | PHI | PIT 20.8 - 16.7 PHI | -4.1 | 39.8% | 37.5 | PIT |
+| 2026-11-22 | LV | DEN | LV 16.4 - 25.4 DEN | +9.1 | 71.5% | 41.8 | DEN |
+| 2026-11-22 | JAX | NYG | JAX 23.8 - 15.9 NYG | -7.9 | 31.1% | 39.7 | JAX |
+| 2026-11-22 | MIA | BUF | MIA 14.0 - 27.6 BUF | +13.5 | 80.1% | 41.6 | BUF |
+| 2026-11-22 | TB | DET | TB 20.5 - 26.6 DET | +6.1 | 64.9% | 47.1 | DET |
+| 2026-11-22 | TEN | DAL | TEN 22.0 - 29.3 DAL | +7.4 | 67.7% | 51.3 | DAL |
+| 2026-11-22 | NO | CHI | NO 12.4 - 22.3 CHI | +10.0 | 73.3% | 34.7 | CHI |
+| 2026-11-22 | BAL | CAR | BAL 19.3 - 20.5 CAR | +1.3 | 53.1% | 39.8 | CAR |
+| 2026-11-22 | ARI | KC | ARI 15.0 - 26.2 KC | +11.2 | 75.8% | 41.2 | KC |
+| 2026-11-23 | CIN | WAS | CIN 25.7 - 20.0 WAS | -5.8 | 35.9% | 45.7 | CIN |
 
-All 14 games posted before kickoff, including Thursday night's WAS @ NYG (CHI, DEN, PHI, and TB are on bye).
-Two heads ups. NE @ DET is in Munich, and my model still gives DET home field,
-so without it that one would be about DET +2.2 instead of +3.4. And two totals
-(WAS @ NYG and HOU @ CLE) have my full 8 point rain penalty because the forecast
-mentions rain, though Cleveland's is only a "slight chance." The details are in
-the [week 10 file](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week10.md).
+All 13 games posted before kickoff, including Thursday night's IND @ HOU (ATL, CLE, GB, LA, NE, and SEA are on bye).
+Two heads ups. MIN @ SF is in Mexico City, and my model gets that wrong twice:
+it still gives SF home field, and it used the forecast for the Bay Area, not
+Mexico City, so a "Light Rain Likely" in Santa Clara took 8 points off the total.
+It also doesn't know about the altitude. And eight totals this week have my full
+8 point rain penalty because the forecast mentions rain, but only Chicago's is a
+real rain forecast. The rest say "chance" or "slight chance," which my model
+treats the same as actual rain, so I think most of my totals this week are too
+low. That penalty only touches totals, so my margins and win probabilities
+aren't affected. The details are in the
+[week 11 file](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week11.md).
 
 ### Previous weeks
 
+- [Week 10](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week10.md): all 14 games posted before kickoff.
 - [Week 9](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week09.md): all 15 games posted before kickoff.
 - [Week 8](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week08.md): all 14 games posted before kickoff.
 - [Week 7](https://github.com/asadali127498-dev/nfl-model/blob/main/predictions/2026-week07.md): all 14 games posted before kickoff.
