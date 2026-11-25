@@ -1,13 +1,13 @@
 # 2026 Scorecard
 
-Updated 2026-11-18T18:14:21 (local time). I graded every number here from the prediction files exactly as I posted them, not from a re-run of the model. The Vegas numbers are the closing line from nflverse, and the Vegas win % is the moneyline with the vig taken out.
+Updated 2026-11-24T19:15:46 (local time). I graded every number here from the prediction files exactly as I posted them, not from a re-run of the model. The Vegas numbers are the closing line from nflverse, and the Vegas win % is the moneyline with the vig taken out.
 
 Each cell is model / Vegas, and lower is better for MAE and Brier. For reference, my margin MAE over the 2023-2025 test seasons was 10.17 and Vegas was 9.74. I don't think a couple of weeks says much of anything yet, so I'm treating this as a running tally.
 
 | Games | n | Straight up | Margin MAE | Brier | Total MAE | Closer than Vegas |
 |---|---|---|---|---|---|---|
-| Pre-registered only | 120 | 80-40 / 83-37 | 9.56 / 9.60 | 0.207 / 0.203 | 11.24 / 10.34 | 62 of 120 |
-| All graded games | 135 | 88-47 / 93-42 | 9.90 / 9.91 | 0.211 / 0.207 | 11.08 / 10.33 | 71 of 135 |
+| Pre-registered only | 133 | 89-44 / 92-41 | 9.49 / 9.42 | 0.206 / 0.201 | 11.11 / 10.39 | 67 of 133 |
+| All graded games | 148 | 97-51 / 102-46 | 9.81 / 9.72 | 0.209 / 0.205 | 10.98 / 10.37 | 76 of 148 |
 | Week 1 | 16 | 10-6 / 12-4 | 11.82 / 11.28 | 0.232 / 0.214 | 12.24 / 11.69 | 6 of 16 |
 | Week 2 (not pre-registered) | 15 | 8-7 / 10-5 | 12.63 / 12.33 | 0.242 / 0.239 | 9.87 / 10.23 | 9 of 15 |
 | Week 3 | 16 | 9-7 / 9-7 | 7.96 / 8.09 | 0.218 / 0.254 | 11.04 / 10.94 | 8 of 16 |
@@ -17,6 +17,7 @@ Each cell is model / Vegas, and lower is better for MAE and Brier. For reference
 | Week 8 | 14 | 11-3 / 11-3 | 10.56 / 10.82 | 0.187 / 0.181 | 12.99 / 11.29 | 9 of 14 |
 | Week 9 | 15 | 14-1 / 14-1 | 9.36 / 8.80 | 0.164 / 0.121 | 12.40 / 10.10 | 6 of 15 |
 | Week 10 | 14 | 9-5 / 9-5 | 10.32 / 10.36 | 0.208 / 0.184 | 8.51 / 8.36 | 9 of 14 |
+| Week 11 | 13 | 9-4 / 9-4 | 8.78 / 7.77 | 0.194 / 0.183 | 9.91 / 10.81 | 5 of 13 |
 
 Pre-registered means I committed that week's file before the game kicked off. I pushed the Week 2 file after its games were already played, so I'm still grading it to keep the record complete, but it doesn't count toward the top row.
 
@@ -217,5 +218,25 @@ File first committed 2026-11-10 18:42 UTC-05:00.
 | SF @ DAL | SF 46 - 40 DAL | -4.3 | -3.5 | -6 | 1.7 | 2.5 | 39.5% | 35.5% | SF (yes) |
 | PIT @ CIN | PIT 18 - 38 CIN | +3.5 | +4.5 | +20 | 16.5 | 15.5 | 58.6% | 65.7% | CIN (yes) |
 | LAC @ BAL | LAC 23 - 20 BAL | +4.9 | +4.5 | -3 | 7.9 | 7.5 | 61.9% | 66.4% | BAL (no) |
+
+## Week 11
+
+File first committed 2026-11-18 18:17 UTC-05:00.
+
+| Game | Final | Model margin | Vegas line | Result | Model err | Vegas err | Model win % | Vegas win % | SU pick |
+|---|---|---|---|---|---|---|---|---|---|
+| IND @ HOU | IND 3 - 26 HOU | +6.4 | +12.5 | +23 | 16.6 | 10.5 | 65.5% | 84.8% | HOU (yes) |
+| PIT @ PHI | PIT 16 - 19 PHI | -4.1 | -3.5 | +3 | 7.1 | 6.5 | 39.8% | 36.4% | PIT (no) |
+| MIA @ BUF | MIA 9 - 26 BUF | +13.5 | +16.5 | +17 | 3.5 | 0.5 | 80.1% | 91.1% | BUF (yes) |
+| TB @ DET | TB 21 - 31 DET | +6.1 | +3.5 | +10 | 3.9 | 6.5 | 64.9% | 66.2% | DET (yes) |
+| TEN @ DAL | TEN 30 - 51 DAL | +7.4 | +7.5 | +21 | 13.6 | 13.5 | 67.7% | 75.2% | DAL (yes) |
+| NO @ CHI | NO 13 - 21 CHI | +10.0 | +11.5 | +8 | 2.0 | 3.5 | 73.3% | 83.7% | CHI (yes) |
+| BAL @ CAR | BAL 33 - 35 CAR | +1.3 | +2.5 | +2 | 0.7 | 0.5 | 53.1% | 56.2% | CAR (yes) |
+| ARI @ KC | ARI 7 - 34 KC | +11.2 | +15.5 | +27 | 15.8 | 11.5 | 75.8% | 89.9% | KC (yes) |
+| NYJ @ LAC | NYJ 27 - 24 LAC | +2.4 | +3.0 | -3 | 5.4 | 6.0 | 55.9% | 61.9% | LAC (no) |
+| LV @ DEN | LV 24 - 38 DEN | +9.1 | +11.5 | +14 | 4.9 | 2.5 | 71.5% | 83.3% | DEN (yes) |
+| JAX @ NYG | JAX 18 - 23 NYG | -7.9 | -6.0 | +5 | 12.9 | 11.0 | 31.1% | 30.5% | JAX (no) |
+| MIN @ SF | MIN 10 - 35 SF | +5.0 | +4.5 | +25 | 20.0 | 20.5 | 62.2% | 64.4% | SF (yes) |
+| CIN @ WAS | CIN 20 - 22 WAS | -5.8 | -6.0 | +2 | 7.8 | 8.0 | 35.9% | 28.4% | CIN (no) |
 
 Margins, lines, and win % are all from the home team's side, so +3.0 means the home team by 3.
